@@ -1,0 +1,7 @@
+<backup-configuration>
+ <locations>
+  <location type="file" category="settings" auto="true">
+   @VARDIR@/alarm_queue.xml
+  </location>
+ </locations>
+</backup-configuration>

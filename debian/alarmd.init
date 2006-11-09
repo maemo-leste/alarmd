@@ -1,0 +1,66 @@
+#! /bin/sh
+#
+# Startup script for the Alarmdaemon.
+#
+# Contact Person: David Weinehall <david.weinehall@nokia.com>
+#
+# Copyright (C) 2006 Nokia Corporation.
+#
+# This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
+# conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/alarmd
+NAME=alarmd
+DESC="OSSO Alarm Daemon"
+PIDFILE=/var/run/alarmd.pid
+INITFILE=/etc/init.d/$NAME
+
+# abort if no executable exists
+test -x $DAEMON || exit 0
+
+if [ -e /etc/osso-af-init/af-defines.sh ]
+then
+  source /etc/osso-af-init/af-defines.sh
+else
+  echo "/etc/osso-af-init/af-defines.sh not found!"
+  exit 1
+fi
+
+for i in /etc/osso-af-init/*.defs
+do
+  source $i
+done
+
+
+set -e
+
+case "$1" in
+start)
+        printf "Starting $DESC: $NAME"
+        dsmetool -U user -G users -f "$DAEMON"
+        printf ".\n"
+        ;;
+
+stop)
+        printf "Stopping: $DESC: $NAME"
+        dsmetool -U user -G users -k "$DAEMON"
+        printf ".\n"
+        ;;
+
+restart|force-reload)
+        printf "Restarting $DESC: $NAME"
+        dsmetool -U user -G users -k "$DAEMON"
+        sleep 1
+        dsmetool -U user -G users -f "$DAEMON"
+        printf ".\n"
+        ;;
+
+*)
+        printf "Usage: $INITFILE {start|stop|restart|force-reload}\n" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

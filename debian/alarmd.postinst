@@ -1,0 +1,6 @@
+#!/bin/sh
+
+mkdir -p /var/lib/alarmd
+chown user:users /var/lib/alarmd
+
+#DEBHELPER#

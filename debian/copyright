@@ -1,0 +1,24 @@
+This package was debianized by Santtu Lakkala <ext-santtu.1.lakkala@nokia.com> on
+Wed, 22 Feb 2006 14:37:19 +0200.
+
+Upstream Author: Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>
+Contact Person: David Weinehall <david.weinehall@nokia.com>
+
+Copyright (C) 2006 Nokia Corporation
+
+   alarmd and libalarm are free software; you can redistribute them
+   and/or modify them under the terms of the GNU Lesser General Public
+   License version 2.1 as published by the Free Software Foundation.
+
+   alarmd and libalarm are distributed in the hope that they will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this software; if not, write to the Free
+   Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+   02110-1301 USA
+
+On Debian systems, the complete text of the GNU Lesser
+General Public License can be found in `/usr/share/common-licenses/LGPL-2.1'.

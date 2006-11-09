@@ -1,0 +1,3 @@
+man/alarm_event_add.3
+man/alarm_escape_string.3
+man/alarmd_set_default_snooze.3

@@ -1,0 +1,203 @@
+.TH ALARMTOOL 8 "Oct  3, 2006" "Nokia"
+
+.SH NAME
+alarmtool \- tool to test event daemon functionality
+
+.SH SYNOPSIS
+.B alarmtool
+[\fIOPTION\fP]...
+
+.SH DESCRIPTION
+.B alarmtool
+provides means to add different alarm events to queue of
+.B alarmd.
+
+.SH OPTIONS
+.TP
+\fB\-a\fP, \fB\-\-add\fP
+Adds an event to the queue, see section
+.B ADDING EVENTS.
+.TP
+\fB\-r\fP \fIeventid\fP, \fB\-\-remove\fP \fIeventid\fP
+Removes event from the queue. The id supplied should be as got from
+adding or querying events.
+.TP
+\fB\-q\fP, \fB\-\-query\fP
+Queries events on the queue, see section
+.B QUERYING EVENTS.
+.TP
+\fB\-g\fP \fIeventid\fP, \fB\-\-get\fP \fIeventid\fP
+Gets info about an event. The id supplied should be as got from adding or
+querying events.
+
+.SH ADDING EVENTS
+When adding events, you need to specify certain details about the event.
+On successful addition, the id of the added event is printed to standard
+output. The details of the event should be set with following flags:
+.TP
+\fB\-t\fP \fItime\fP, \fB\-\-time\fP \fItime\fP
+The time the event should launch, in seconds since epoch.
+.TP
+\fB\-R\fP \fIinterval\fP, \fB\-\-recurr\fP \fIinterval\fP
+The time interval between two successive runs of the event in minutes.
+Default is no repeating.
+.TP
+\fB\-C\fP \fIn\fP, \fB\-\-recurr-count\fP \fIn\fP
+How many times should the event be repeated, -1 for infinite.
+.TP
+\fB\-i\fP \fIiface\fP, \fB\-\-dbus-interface\fP \fIiface\fP
+Interface for dbus action of the event.
+.TP
+\fB\-s\fP \fIservice\fP, \fB\-\-dbus-service\fP \fIservice\fP
+Service to be called via DBus. If this is specified, dbus action will be a
+method call.
+.TP
+\fB\-p\fP \fIpath\fP, \fB\-\-dbus-path\fP \fIpath\fP
+Path for dbus action of the event.
+.TP
+\fB\-n\fP \fIname\fP, \fB\-\-dbus-name\fP \fIname\fP
+Name of dbus method/signal.
+.TP
+\fB\-y\fP, \fB\-\-dbus-system-bus\fP
+If used, the dbus action will be done over system bus, otherwise session
+bus is used.
+.TP
+\fB\-m\fP \fImessage\fP, \fB\-\-dialog-message\fP \fImessage\fP
+Message to show in the alarm dialog.
+.TP
+\fB\-c\fP \fIicon\fP, \fB\-\-dialog-icon\fP \fIicon\fP
+Icon name or path to show in the alarm dialog.
+.TP
+\fB\-u\fP \fIsound\fP, \fB\-\-dialog-sound\fP \fIsound\fP
+Path to a sound file to play when the alarm dialog is shown.
+.TP
+\fB\-e\fP \fIcommand\fP, \fB\-\-exec\fP \fIcommand\fP
+Command to execute when the event is run. (You can only have DBus or exec,
+not both).
+.TP
+\fB\-d\fP, \fB\-\-no-dialog\fP
+If used, the event will not show a dialog when run.
+.TP
+\fB\-z\fP, \fB\-\-no-snooze\fP
+If used, the snooze button in events alarm dialog is disabled.
+.TP
+\fB\-o\fP, \fB\-\-boot\fP
+If used, the event will wake the device if powered off.
+.TP
+\fB\-b\fP, \fB\-\-show-icon\fP
+If used, a alarm indicator will be shown in statusbar for the lifetime of the
+event.
+.TP
+\fB\-r\fP, \fB\-\-run-delayed\fP
+If used, the event will be run even if the time was missed due to powered
+off device, or jumping over the set time. Otherwise the event will be removed
+silently.
+.TP
+\fB\-w\fP, \fB\-\-connected\fP
+If used, the event will be launched only when there is an internet connection.
+If no connection is available at that time,
+.TP
+\fB\-a\fP, \fB\-\-activation\fP
+If used, the dbus method call will use activation flag.
+.TP
+\fB\-P\fP, \fB\-\-postpone-delayed\fP
+If used, the event will be moved forward to next day, if it is delayed for
+more than one day.
+.TP
+\fB\-B\fP, \fB\-\-back-reschedule\fP
+If used, a recurring alarm will be forced to be within recurr interval from
+current time, and thus can be moved backwards, if device time is changed.
+.B alarmd(8)
+will wait for a connection and launch the event then.
+
+.SH QUERYING EVENTS
+The events on the queue can be queried based on their time and flags. The
+list of ids for the events is printed to standard output. The default for
+flags is not to care about them. If a flag and it's negative are both
+specified, the last one is used. The details to query are set using following
+flags:
+.TP
+\fB\-f\fP \fItime\fP, \fB\-\-first-time\fP \fItime\fP
+Query events set to time greater than this. In seconds since epoch.
+.TP
+\fB\-l\fP \fItime\fP, \fB\-\-last-time\fP \fItime\fP
+Query events set to time less than this. In seconds since epoch.
+.TP
+\fB\-Y\fP, \fB\-\-dbus-session-bus\fP
+Query events that use session bus for dbus actions.
+.TP
+\fB\-y\fP, \fB\-\-dbus-system-bus\fP
+Query events that use system bus for dbus actions.
+.TP
+\fB\-D\fP, \fB\-\-dialog\fP
+Query events that use the alarm dialog.
+.TP
+\fB\-d\fP, \fB\-\-no-dialog\fP
+Query events that do not use the alarm dialog.
+.TP
+\fB\-Z\fP, \fB\-\-snooze\fP
+Query events that allow snooze in the alarm dialog.
+.TP
+\fB\-z\fP, \fB\-\-no-snooze\fP
+Query events that do not allow snooze in the alarm dialog.
+.TP
+\fB\-o\fP, \fB\-\-boot\fP
+Query events that power the device on, if powered off.
+.TP
+\fB\-O\fP, \fB\-\-no-boot\fP
+Query events that power the device on, if powered off.
+.TP
+\fB\-b\fP, \fB\-\-show-icon\fP
+Query events that show icon in the status bar.
+.TP
+\fB\-B\fP, \fB\-\-no-show-icon\fP
+Query events that do not show icon in the status bar.
+.TP
+\fB\-r\fP, \fB\-\-run-delayed\fP
+Query events that are run afterwards if missed due to power off or time
+change.
+.TP
+\fB\-R\fP, \fB\-\-no-run-delayed\fP
+Query events that are not run afterwards if missed due to power off or time
+change.
+.TP
+\fB\-c\fP, \fB\-\-connected\fP
+Query events that require an internet connection to be run.
+.TP
+\fB\-C\fP, \fB\-\-no-connected\fP
+Query events that do net require an internet connection to be run.
+.TP
+\fB\-a\fP, \fB\-\-activation\fP
+Query events that use DBus activation.
+.TP
+\fB\-A\fP, \fB\-\-no-activation\fP
+Query events that do not use DBus activation.
+.TP
+\fB\-p\fP, \fB\-\-postpone-delayed\fP
+Query events that are postponed if missed.
+.TP
+\fB\-P\fP, \fB\-\-no-postpne-dlayed\fP
+Query events that are not postponed if missed.
+.TP
+\fB\-e\fP, \fB\-\-back-reschedule\fP
+Query events that are moved backwards if time is changed backwards.
+.TP
+\fB\-E\fP, \fB\-\-no-back-reschedule\fP
+Query events that are not moved backwards if time is changed backwards.
+
+.SH RETURN VALUE
+If an action was successful, the return value will be 0. If there was error
+in input 1 is returned, and if an event specified could not be found, -1.
+
+.SH SEE ALSO
+.BR alarmd (8)
+
+.SH HISTORY
+Oct  3 2006: Initial version of this manual page.
+
+.SH COPYRIGHT
+Copyright \(co 2006 Nokia Corporation.
+
+This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
+conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.

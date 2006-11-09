@@ -1,0 +1,255 @@
+alarmd (0.3.0) unstable; urgency=low
+
+  * Version bump.
+  * Add error reporting to alarm_event_del.
+  * Add missing g_object_unref.
+  * Remove invalid sanity check.
+  * Disable BOOT and ACTDEAD flags.
+  * Disable dialog state reporting.
+  * Use old systemui alarm dialog DBus API.
+  * Don't show statusbar icon.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu,  9 Nov 2006 14:10:03 +0200
+
+alarmd (0.2.28) unstable; urgency=low
+
+  * Create debug package too. Fixes: NB#46635
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed,  8 Nov 2006 16:19:29 +0200
+
+alarmd (0.2.27) unstable; urgency=low
+
+  * Add NULL check. Fixes: NB#46535
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  6 Nov 2006 15:08:49 +0200
+
+alarmd (0.2.26) unstable; urgency=low
+
+  * Fix DBus service started match string.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 25 Oct 2006 17:34:44 +0300
+
+alarmd (0.2.25) unstable; urgency=low
+
+  * Add more detailed match for service waiting. Fixes: NB#44955
+  * Very minor cleanups.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 25 Oct 2006 13:36:04 +0300
+
+alarmd (0.2.24) unstable; urgency=low
+
+  * Minor cleanups. Fixes: NB#43912
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 23 Oct 2006 15:28:14 +0300
+
+alarmd (0.2.23) unstable; urgency=low
+
+  * Various cleanups. Fixes: NB#43037
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 11 Oct 2006 17:41:19 +0300
+
+alarmd (0.2.22) unstable; urgency=low
+
+  * Don't clear hw clock alarm on deinit.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  9 Oct 2006 15:56:25 +0300
+
+alarmd (0.2.21) unstable; urgency=low
+
+  * Launch new events -- not old ones -- when time changes.
+  * Fix slist handling in AlarmdQueue time_changed method.
+    Fixes: NB#42433
+  * More manpages.
+  * Fix segmentation fault on deinitialization.
+  * Make timer plugins aware of initialization state. Fixes: NB#40727.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  9 Oct 2006 13:47:00 +0300
+
+alarmd (0.2.20) unstable; urgency=low
+
+  * Add clear used data script. Fixes: NB#41687
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed,  4 Oct 2006 16:07:35 +0300
+
+alarmd (0.2.19) unstable; urgency=low
+
+  * Show powerup dialog also on snooze. Fixes: NB#35990
+  * Add ALARM_EVENT_BACK_RESCHEDULE flag.
+  * Add manpages.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed,  4 Oct 2006 10:25:54 +0300
+
+alarmd (0.2.18) unstable; urgency=low
+
+  * Add ALARM_EVENT_POSTPONE_DELAYED flag.
+  * Move flags from actiondialog to action.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 27 Sep 2006 15:18:00 +0300
+
+alarmd (0.2.17) unstable; urgency=low
+
+  * Use own retutime wrappers instead of osso-clock.
+  * Separate more rpc calls to own files.
+  * Use new osso-systemui-dbus-dev.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu, 21 Sep 2006 16:30:24 +0300
+
+alarmd (0.2.16) unstable; urgency=low
+
+  * Add alarm_unescape_string to libalarm.
+  * Iterate all events on query, including pending ones.
+  * Send 'off' messages to mce more verbosely. Fixes: NB#40414.
+  * Save queue if it changes during startup.
+  * When connected event is launched, wait for connection if not
+    connected. Fixes: NB#30579.
+  * Do some logging on error cases.
+  * Fix delayed event handling in timer plugins. Fixes: NB#40680.
+  * Fix dequeue event handling.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 18 Sep 2006 16:23:01 +0300
+
+alarmd (0.2.15) unstable; urgency=low
+
+  * Send original alarm time to systemui.
+  * Add alarm_escape_string to libalarm.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 13 Sep 2006 10:44:22 +0300
+
+alarmd (0.2.14) unstable; urgency=low
+
+  * Improve recurring alarm postponing algorithm.
+  * Save queue when snooze time gets changed.
+  * Fix snooze on old alarms. Fixes: NB#39451.
+  * Tell systemui to replay sound. Fixes: NB#36239.
+  * Acknowledge pending alarms on shutdown. Fixes: NB#38636.
+  * Include configuration file for osso-backup. Fixes: NB#36536.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 11 Sep 2006 13:23:45 +0300
+
+alarmd (0.2.13) unstable; urgency=low
+
+  * Improve mce communication.
+  * Use powerup dialog in dbus and exec action types too. Fixes:
+    NB#35990.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu,  7 Sep 2006 09:59:33 +0300
+
+alarmd (0.2.12) unstable; urgency=low
+
+  * Remove .la and .a files from package. Fixes: NB#38467.
+  * Call mce with alarm dialog visibility status. Fixes: NB#39047.
+  * Add NULL terminator to g_object_get call. Fixes: NB#37662.
+  * Call timer plugin time_changed methods when time changes. Fixes:
+    NB#38600.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue,  5 Sep 2006 13:45:44 +0300
+
+alarmd (0.2.11) unstable; urgency=low
+
+  * Fix storing the snooze time.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed,  2 Aug 2006 16:27:57 +0300
+
+alarmd (0.2.10) unstable; urgency=low
+
+  * Added set_get default snooze functions and snoozed field to
+    libalarm/alarm_event_t sctruct and changed the implementation
+    accordingly. Fixes: NB#35308.
+  * Changed to signleton dbus bus handling. Fixes: NB#34449.
+  * Fixed queue to continue working even when an alarm dialog is
+    showing.
+  * Added timer-interface.h to libalarm-dev package.
+  * Added error reporting to libalarm.
+  * Added activation flag to events.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed,  2 Aug 2006 10:41:13 +0300
+
+alarmd (0.2.9) unstable; urgency=low
+
+  * Only use retu to get device up, gtimeouts for normal timing for
+    finer granularity. Fixes: NB#35183.
+  * Act on time changes that pass over the alarm time. Fixes: NB#35244.
+  * Change loading order of timers and queue in order to get queued
+    items on right queue.
+  * Fix dbus bus handling in statusbar subsystem.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 25 Jul 2006 14:20:35 +0300
+
+alarmd (0.2.8) unstable; urgency=low
+
+  * Add alarm_dbus.h to libalarm-dev.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri, 14 Jul 2006 14:05:13 +0300
+
+alarmd (0.2.7) unstable; urgency=low
+
+  * Fix recurring events again. Fixes: NB#34449
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 12 Jul 2006 11:08:24 +0300
+
+alarmd (0.2.6) unstable; urgency=low
+
+  * Use colon instead of period in postinst.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 10 Jul 2006 11:40:01 +0300
+
+alarmd (0.2.5) unstable; urgency=low
+
+  * Add '$' to .pc file. Fixes: NB#34304.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  7 Jul 2006 14:07:05 +0300
+
+alarmd (0.2.4) unstable; urgency=low
+
+  * Use /var/lib/alarmd instead of home dir.
+  * Keep up next_alarm_time and next_alarm_mode files.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu, 22 Jun 2006 11:06:17 +0300
+
+alarmd (0.2.3) unstable; urgency=low
+
+  * Bug N#32365: Fix recurring events.
+  * Added lots of gtkdoc comments.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  9 Jun 2006 17:28:25 +0300
+
+alarmd (0.2.2) unstable; urgency=low
+
+  * Fix libalarm query_event.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  5 Jun 2006 14:10:01 +0300
+
+alarmd (0.2.1) unstable; urgency=low
+
+  * Conflict with too old osso-systemui-alarm.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  2 Jun 2006 11:59:31 +0300
+
+alarmd (0.2.0) unstable; urgency=low
+
+  * Rename data types.
+  * Include README.
+  * Include pkgconfig file.
+  * Add title field.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu,  1 Jun 2006 15:41:28 +0300
+
+alarmd (0.1.1) unstable; urgency=low
+
+  * Added and implemented ALARM_EVENT_CONNECTED.
+  * Fixed many issues.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  5 May 2006 13:28:15 +0300
+
+alarmd (0.1.0) unstable; urgency=low
+
+  * First public release.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu,  4 May 2006 16:08:22 +0300
+
+alarmd (0.0.1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 22 Feb 2006 14:37:19 +0200
+

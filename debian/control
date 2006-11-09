@@ -1,0 +1,41 @@
+Source: alarmd
+Section: utils
+Priority: optional
+Maintainer: David Weinehall <david.weinehall@nokia.com>
+Uploaders: Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>
+Build-Depends: debhelper (>= 4.0.0), libtool, libglib2.0-0 (>= 2.6.0), osso-systemui-dbus-dev, libxml2-dev, mce-dev (>= 1.4.0), osso-ic-dev
+Standards-Version: 3.7.2
+
+Package: alarmd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: osso-systemui-alarm (<< 0.1.5.1)
+Description: Generic alarm dispatcher
+ This package contains the alarm daemon which provides event
+ handling features for applications.
+
+Package: libalarm0
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Convenience API for alarm dispatcher
+ This package contains C helper API for using alarm daemon.
+
+Package: libalarm-dev
+Architecture: any
+Depends: libalarm0
+Description: Development files for alarm dispatcher
+ This package contains C headers for the helper API.
+
+Package: alarmtool
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Simple alarmd command line utility
+ This package contains a command line tool for modifying and querying
+ the alarm queue.
+
+Package: libalarm0-dbg
+Architecture: any
+Depends: ${shlibs:Depends}, libalarm0 (= ${Source-Version})
+Description: Convenience API for alarm dispatcher with debugging symbols
+ This package contains C helper API for using alarm daemon with debugging
+ symbols.
