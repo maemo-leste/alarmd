@@ -36,164 +36,210 @@
 #include "debug.h"
 
 struct files_t {
-       gchar *queue_file;
-       gchar *next_time_file;
-       gchar *next_mode_file;
+	AlarmdQueue *queue;
+	gchar *queue_file;
+	gchar *next_time_file;
+	gchar *next_mode_file;
+	guint timer_id;
 };
 
-static void _write_data(AlarmdQueue *queue, const struct files_t *files);
+static void _write_data(AlarmdQueue *queue, struct files_t *files);
+static gboolean _real_write_data(struct files_t *files);
 static void _free_data(struct files_t *files);
 static void _queue_changed(gpointer user_data);
 
 AlarmdQueue *init_queue(const gchar *queue_file, const gchar *next_time_file,
-               const gchar *next_mode_file)
+		const gchar *next_mode_file)
 {
-       AlarmdQueue *retval = NULL;
-       xmlDoc *doc = NULL;
-       xmlNode *root = NULL;
-       struct files_t *files = NULL;
-       GSList *timers = NULL;
-       gboolean do_save = FALSE;
+	AlarmdQueue *retval = NULL;
+	xmlDoc *doc = NULL;
+	xmlNode *root = NULL;
+	struct files_t *files = NULL;
+	GSList *timers = NULL;
+	gboolean do_save = FALSE;
 
-       if (queue_file == NULL) {
-               return NULL;
-       }
+	if (queue_file == NULL) {
+		return NULL;
+	}
 
-       retval = alarmd_queue_new();
-       timers = load_timer_plugins(NULL);
+	retval = alarmd_queue_new();
+	timers = load_timer_plugins(NULL);
 
-       g_object_set(retval, "timer", timers_get_plugin(timers, FALSE), NULL);
-       g_object_set(retval, "timer_powerup", timers_get_plugin(timers, TRUE), NULL);
-       g_object_set_data_full(G_OBJECT(retval), "timers", timers,
-                       (GDestroyNotify)close_timer_plugins);
+	g_object_set(retval, "timer", timers_get_plugin(timers, FALSE), NULL);
+	g_object_set(retval, "timer_powerup", timers_get_plugin(timers, TRUE), NULL);
+	g_object_set_data_full(G_OBJECT(retval), "timers", timers,
+		       	(GDestroyNotify)close_timer_plugins);
 
-       DEBUG("%s", queue_file);
+	DEBUG("%s", queue_file);
 
-       doc = xmlReadFile(queue_file, NULL, 0);
+	doc = xmlReadFile(queue_file, NULL, 0);
 
-       if (doc) {
-               root = xmlDocGetRootElement(doc);
+	if (doc) {
+		root = xmlDocGetRootElement(doc);
 
-               if (strcmp(root->name, "queue") == 0) {
-                       guint n_params, i;
-                       GParameter *param = elements_to_parameters(root,
-                                       &n_params);
-                       gulong signal_id;
+		if (strcmp(root->name, "queue") == 0) {
+			guint n_params, i;
+			GParameter *param = elements_to_parameters(root,
+					&n_params);
+			gulong signal_id;
 
-                       for (i = 0; i < n_params; i++) {
-                               g_object_set_property(G_OBJECT(retval), param[i].name, &param[i].value);
-                       }
-                       alarmd_gparameterv_free(param, n_params);
-                       signal_id = g_signal_connect_swapped(retval, "changed",
-                                       G_CALLBACK(_queue_changed),
-                                       &do_save);
+			for (i = 0; i < n_params; i++) {
+				g_object_set_property(G_OBJECT(retval), param[i].name, &param[i].value);
+			}
+			alarmd_gparameterv_free(param, n_params);
+			signal_id = g_signal_connect_swapped(retval, "changed",
+					G_CALLBACK(_queue_changed), 
+					&do_save);
 
-                       for (root = root->children; root != NULL; root = root->next) {
-                               AlarmdObject *object = NULL;
-                               if (root->type != XML_ELEMENT_NODE) {
-                                       continue;
-                               }
-                               object = object_factory(root);
+			for (root = root->children; root != NULL; root = root->next) {
+				AlarmdObject *object = NULL;
+				if (root->type != XML_ELEMENT_NODE) {
+					continue;
+				}
+				object = object_factory(root);
 
-                               if (!object) continue;
+				if (!object) continue;
 
-                               if (ALARMD_IS_EVENT(object)) {
-                                       alarmd_queue_add_event(retval, ALARMD_EVENT(object));
-                               }
-                               g_object_unref(object);
-                       }
+				if (ALARMD_IS_EVENT(object)) {
+					alarmd_queue_add_event(retval, ALARMD_EVENT(object));
+				}
+				g_object_unref(object);
+			}
 
-                       g_signal_handler_disconnect(retval, signal_id);
-               }
+			g_signal_handler_disconnect(retval, signal_id);
+		}
 
-               xmlFreeDoc(doc);
-               xmlCleanupParser();
-       }
+		xmlFreeDoc(doc);
+		xmlCleanupParser();
+	}
 
-       DEBUG("Connecting...");
-       files = g_new(struct files_t, 1);
-       files->queue_file = g_strdup(queue_file);
-       files->next_time_file = g_strdup(next_time_file);
-       files->next_mode_file = g_strdup(next_mode_file);
+	DEBUG("Connecting...");
+	files = g_new(struct files_t, 1);
+	files->queue = retval;
+	files->queue_file = g_strdup(queue_file);
+	files->next_time_file = g_strdup(next_time_file);
+	files->next_mode_file = g_strdup(next_mode_file);
+	files->timer_id = 0;
 
-       if (do_save) {
-               _write_data(retval, files);
-       }
-       g_signal_connect_data(retval, "changed", (GCallback)_write_data, files, (GClosureNotify)_free_data, G_CONNECT_AFTER);
+	if (do_save) {
+		_write_data(retval, files);
+	}
+	g_signal_connect_data(retval, "changed", (GCallback)_write_data, files, (GClosureNotify)_free_data, G_CONNECT_AFTER);
 
-       timer_plugins_set_startup(timers, FALSE);
+	timer_plugins_set_startup(timers, FALSE);
 
-       return retval;
+	return retval;
 }
 
 void alarmd_type_init(void)
 {
-       (void)ALARMD_TYPE_EVENT_RECURRING;
-       (void)ALARMD_TYPE_ACTION;
-       (void)ALARMD_TYPE_ACTION_DBUS;
-       (void)ALARMD_TYPE_ACTION_EXEC;
+	(void)ALARMD_TYPE_EVENT_RECURRING;
+	(void)ALARMD_TYPE_ACTION;
+	(void)ALARMD_TYPE_ACTION_DBUS;
+	(void)ALARMD_TYPE_ACTION_EXEC;
 }
 
-static void _write_data(AlarmdQueue *queue, const struct files_t *files)
+static void _write_data(AlarmdQueue *queue, struct files_t *files)
 {
-       ENTER_FUNC;
-       xmlDoc *doc = xmlNewDoc("1.0");
-       xmlNode *root_node = alarmd_object_to_xml(ALARMD_OBJECT(queue));
-       glong *events = NULL;
-       guint n_events = 0;
-       FILE *write = NULL;
-       gint flags = 0;
-       time_t event_time = 0;
-       const char *mode = "n/a";
+	ENTER_FUNC;
 
-       xmlDocSetRootElement(doc, root_node);
+	(void)queue;
 
-       xmlSaveFormatFileEnc(files->queue_file, doc, "UTF-8", 1);
+	if (files->timer_id == 0) {
+		files->timer_id = g_idle_add((GSourceFunc)_real_write_data,
+				files);
+	}
+	LEAVE_FUNC;
+}
 
-       xmlFreeDoc(doc);
-       xmlCleanupParser();
+static gboolean _real_write_data(struct files_t *files)
+{
+	ENTER_FUNC;
+	xmlDoc *doc = xmlNewDoc("1.0");
+	xmlNode *root_node = alarmd_object_to_xml(ALARMD_OBJECT(files->queue));
+	glong *events = NULL;
+	guint n_events = 0;
+	FILE *write = NULL;
+	gint flags = 0;
+	time_t event_time = 0;
+	const char *mode = "n/a";
+	gchar *old_contents = NULL;
+	gchar *new_contents = NULL;
 
-       events = alarmd_queue_query_events(queue, 0, G_MAXINT64,
-                       ALARM_EVENT_BOOT, ALARM_EVENT_BOOT,
-                       &n_events);
+	files->timer_id = 0;
 
-       if (n_events > 0) {
-               AlarmdEvent *event = alarmd_queue_get_event(queue, events[0]);
-               event_time = alarmd_event_get_time(event);
-               AlarmdAction *action = NULL;
-               g_object_get(event, "action", &action, NULL);
-               if (action) {
-                       g_object_get(action, "flags", &flags, NULL);
-                       g_object_unref(action);
-               }
-               mode = (flags & ALARM_EVENT_ACTDEAD) ? "actdead" : "powerup";
-               g_free(events);
-       }
+	xmlDocSetRootElement(doc, root_node);
 
-       write = fopen(files->next_time_file, "w");
-       if (write) {
-               fprintf(write, "%ld\n", event_time);
-               fclose(write);
-       }
-       write = fopen(files->next_mode_file, "w");
-       if (write) {
-               fprintf(write, "%s\n", mode);
-               fclose(write);
-       }
+	xmlSaveFormatFileEnc(files->queue_file, doc, "UTF-8", 1);
 
-       LEAVE_FUNC;
+	xmlFreeDoc(doc);
+	xmlCleanupParser();
+
+	events = alarmd_queue_query_events(files->queue, 0, G_MAXINT64,
+			ALARM_EVENT_BOOT, ALARM_EVENT_BOOT,
+			&n_events);
+
+	if (n_events > 0) {
+		AlarmdEvent *event = alarmd_queue_get_event(files->queue,
+			       	events[0]);
+		event_time = alarmd_event_get_time(event);
+		AlarmdAction *action = NULL;
+		g_object_get(event, "action", &action, NULL);
+		if (action) {
+			g_object_get(action, "flags", &flags, NULL);
+			g_object_unref(action);
+		}
+		mode = (flags & ALARM_EVENT_ACTDEAD) ? "actdead" : "powerup";
+		g_free(events);
+	}
+
+	
+	g_file_get_contents(files->next_time_file,
+			&old_contents,
+			NULL,
+			NULL);
+	new_contents = g_strdup_printf("%ld", event_time);
+	if (!(old_contents && new_contents &&
+				strcmp(g_strchomp(old_contents),
+				       	new_contents) == 0)) {
+		write = fopen(files->next_time_file, "w");
+		if (write) {
+			fprintf(write, "%s\n", new_contents);
+			fclose(write);
+		}
+	}
+	g_free(new_contents);
+	g_free(old_contents);
+	old_contents = NULL;
+	g_file_get_contents(files->next_mode_file,
+			&old_contents,
+			NULL,
+			NULL);
+
+	if (!(old_contents && mode &&
+				strcmp(g_strchomp(old_contents),
+				       	mode) == 0)) {
+		write = fopen(files->next_mode_file, "w");
+		if (write) {
+			fprintf(write, "%s\n", mode);
+			fclose(write);
+		}
+	}
+	
+	LEAVE_FUNC;
+	return FALSE;
 }
 
 static void _free_data(struct files_t *files)
 {
-       g_free(files->queue_file);
-       g_free(files->next_time_file);
-       g_free(files->next_mode_file);
-       g_free(files);
+	g_free(files->queue_file);
+	g_free(files->next_time_file);
+	g_free(files->next_mode_file);
+	g_free(files);
 }
 
 static void _queue_changed(gpointer user_data)
 {
-       gboolean *changed = user_data;
-       *changed = TRUE;
+	gboolean *changed = user_data;
+	*changed = TRUE;
 }

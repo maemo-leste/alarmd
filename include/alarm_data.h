@@ -35,18 +35,18 @@
 extern "C" {
 
 typedef enum {
-       ALARM_ACTION_INVALID = -1,
-       ALARM_ACTION_NORMAL = 0,
-       ALARM_ACTION_ACTDEAD = 1
+	ALARM_ACTION_INVALID = -1,
+	ALARM_ACTION_NORMAL = 0,
+	ALARM_ACTION_ACTDEAD = 1
 } alarmaction;
 
 typedef struct {
-       time_t alarm_time;              /* Time of alarm; UTC */
-       gint recurrence;                /* Number of minutes between
-                                        * each recurrence;
-                                        * 0 for one-shot alarms
-                                        */
-       alarmaction action;             /* Action to perform on alarm */
+	time_t alarm_time;		/* Time of alarm; UTC */
+	gint recurrence;		/* Number of minutes between
+					 * each recurrence;
+					 * 0 for one-shot alarms
+					 */
+	alarmaction action;		/* Action to perform on alarm */
 } alarm_data;
 
 }

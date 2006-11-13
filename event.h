@@ -37,24 +37,24 @@
 typedef struct _AlarmdEvent AlarmdEvent;
 struct _AlarmdEvent
 {
-       AlarmdObject parent_instance;
+	AlarmdObject parent_instance;
 };
 
 typedef struct _AlarmdEventClass AlarmdEventClass;
 struct _AlarmdEventClass
 {
-       AlarmdObjectClass parent_class;
+	AlarmdObjectClass parent_class;
+	
+	void (*fire)(AlarmdEvent *event, gboolean delayed);
+	void (*cancel)(AlarmdEvent *event);
+	void (*acknowledge)(AlarmdEvent *event);
+	void (*snooze)(AlarmdEvent *event);
+	void (*queue)(AlarmdEvent *event, TimerPlugin *applet);
+	void (*dequeue)(AlarmdEvent *event);
+	gint32 (*get_flags)(AlarmdEvent *event);
 
-       void (*fire)(AlarmdEvent *event, gboolean delayed);
-       void (*cancel)(AlarmdEvent *event);
-       void (*acknowledge)(AlarmdEvent *event);
-       void (*snooze)(AlarmdEvent *event);
-       void (*queue)(AlarmdEvent *event, TimerPlugin *applet);
-       void (*dequeue)(AlarmdEvent *event);
-       gint32 (*get_flags)(AlarmdEvent *event);
-
-       time_t (*get_time)(AlarmdEvent *event);
-       gboolean (*need_power_up)(AlarmdEvent *event);
+	time_t (*get_time)(AlarmdEvent *event);
+	gboolean (*need_power_up)(AlarmdEvent *event);
 };
 
 /**

@@ -37,20 +37,20 @@
 typedef struct _AlarmdObject AlarmdObject;
 struct _AlarmdObject
 {
-       GObject parent_instance;
+	GObject parent_instance;
 };
 
 typedef struct _AlarmdObjectClass AlarmdObjectClass;
 struct _AlarmdObjectClass
 {
-       GObjectClass parent_class;
+	GObjectClass parent_class;
 
-       void (*changed)(AlarmdObject *object);
-       GParameter *(*get_properties)(AlarmdObject *object, guint *n_objects);
-       GSList *(*get_saved_properties)();
-       xmlNode *(*to_xml)(AlarmdObject *object);
-       void (*to_dbus)(AlarmdObject *object, DBusMessageIter *iter);
-       void (*time_changed)(AlarmdObject *object);
+	void (*changed)(AlarmdObject *object);
+	GParameter *(*get_properties)(AlarmdObject *object, guint *n_objects);
+	GSList *(*get_saved_properties)();
+	xmlNode *(*to_xml)(AlarmdObject *object);
+	void (*to_dbus)(AlarmdObject *object, DBusMessageIter *iter);
+	void (*time_changed)(AlarmdObject *object);
 };
 
 /**

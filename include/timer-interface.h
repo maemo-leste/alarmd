@@ -65,20 +65,20 @@ typedef void (*TimerCancel)(gpointer user_data);
  **/
 typedef struct _TimerPlugin TimerPlugin;
 struct _TimerPlugin {
-       /* Filled in by alarmd: */
-       gboolean is_startup;
+	/* Filled in by alarmd: */
+	gboolean is_startup;
 
-       /* Filled by the plugin: */
-       gboolean (*set_event)(TimerPlugin *plugin, time_t wanted_time, TimerCallback cb, TimerCancel cancel, gpointer user_data);
-       gboolean (*remove_event)(TimerPlugin *plugin);
-       time_t (*get_time)(TimerPlugin *plugin);
-       void (*time_changed)(TimerPlugin *plugin);
-       void (*plugin_deinit)(TimerPlugin *plugin);
+	/* Filled by the plugin: */
+	gboolean (*set_event)(TimerPlugin *plugin, time_t wanted_time, TimerCallback cb, TimerCancel cancel, gpointer user_data);
+	gboolean (*remove_event)(TimerPlugin *plugin);
+	time_t (*get_time)(TimerPlugin *plugin);
+	void (*time_changed)(TimerPlugin *plugin);
+	void (*plugin_deinit)(TimerPlugin *plugin);
 
-       guint priority;
-       gboolean can_power_up;
+	guint priority;
+	gboolean can_power_up;
 
-       gpointer plugin_data;
+	gpointer plugin_data;
 };
 
 /**

@@ -68,11 +68,11 @@
  *   STRING: Parameter 2 name.
  *
  *   TYPE: Parameter 2 value.
- *
+ *   
  *   ...
- *
+ * 
  * Return:
- *
+ * 
  *  INT32: unique id for the alarm
  **/
 #define ALARM_EVENT_ADD "add_event"
@@ -81,7 +81,7 @@
  * ALARM_EVENT_DEL:
  *
  * Removes event from the queue.
- *
+ * 
  * Parameters:
  *
  *   INT32: The id of the alarm event.
@@ -100,7 +100,7 @@
  * Parameters:
  *
  *   UINT64: Start time of query (seconds since Jan 1 1970 00:00:00 UTC.
- *
+ *   
  *   UINT64: End time of query.
  *
  *   INT32: Flag mask to select events (0 to get all.
@@ -118,7 +118,7 @@
  *
  * Parameters:
  *   INT32: The id of the alarm event.
- *
+ *   
  * Return:
  *
  *   OBJECT_PATH: Name of the object type.
@@ -133,7 +133,7 @@
  *
  *   TYPE: Parameter 2 value.
  *   ...
- *
+ *   
  **/
 #define ALARM_EVENT_GET "get_event"
 

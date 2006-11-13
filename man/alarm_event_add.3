@@ -1,0 +1,357 @@
+.TH ALARM_EVENT_ADD 3 "Oct  5, 2006" "Nokia"
+
+.SH NAME
+alarm_event_add, alarm_event_del, alarm_event_get, alarm_event_query, alarmd_get_error, alarm_event_free \-
+modify / query alarm queue
+
+.SH SYNOPSIS
+.B #include <alarm_event.h>
+.sp
+.BI "cookie_t alarm_event_add(alarm_event_t *" event );
+.br
+.BI "int alarm_event_del(cookie_t " event_cookie );
+.br
+.BI "cookie_t *alarm_event_query(const time_t " first ", const time_t " last ", int32_t " flag_mask ", int32_t " flags );
+.br
+.BI "alarm_event_t *alarm_event_get(cookie_t " event_cookie );
+.br
+.B alarm_error_t alarmd_get_error();
+.bt
+.BI "void alarm_event_free(alarm_event_t *" event );
+
+.SH DESCRIPTION
+The
+.BR alarm_event_add ()
+takes an argument of data type
+.I alarm_event_t
+which describes the event.
+
+.BR alarm_event_del ()
+and
+.BR alarm_event_get ()
+take an argument of data type
+.I cookie_t
+which represents the unique identifier for an event on
+.BR alarmd (8)'s
+queue.
+
+The
+.BR alarm_event_query ()
+takes two arguments of data type
+.I time_t
+and two of type
+.IR int32_t .
+
+The
+.BR alarm_event_free ()
+takes an argument of type
+.IR alarm_event_t .
+
+The details of alarms are stored in
+.I alarm_event_t
+structure, which is defined in
+.I <alarm_event.h>
+as follows:
+.sp
+.RS
+.nf
+typedef struct {
+	time_t alarm_time;
+	uint32_t recurrence;
+	int32_t recurrence_count;
+	uint32_t snooze;
+	char *title;
+	char *message;
+	char *sound;
+	char *icon;
+	char *dbus_interface;
+	char *dbus_service;
+	char *dbus_path;
+	char *dbus_name;
+	char *exec_name;
+	int32_t flags;
+	uint32_t snoozed;
+} alarm_event_t;
+.fi
+.RE
+.pp
+The members of the \fIalarm_event_t\fP structure are:
+.TP
+.I alarm_time
+The number of seconds elapsed since 00:00:00 on January 1, 1970 when the
+event should be launched.
+.TP
+.I recurrence
+Interval in minutes, over which the event should be repeated. 0 if the
+event should only happend once.
+.TP
+.I recurrence_count
+Number of times the event should repeat. \-1 for infinite.
+.TP
+.I snooze
+Number of minutes the event is postponed, when snooze button is pressed in
+alarm dialog. 0 for default setting.
+.TP
+.I title
+Title shown in the alarm dialog. May contain gettext identifiers, see
+LOCALISED STRINGS.
+.TP
+.I message
+Message shown in the alarm dialog. May contain gettext identifier, see
+LOCALISED STRINGS.
+.TP
+.I sound
+Path to sound file that should be played when the alarm dialog is shown.
+.TP
+.I icon
+File name or GtkIconTheme icon name to show in the alarm dialog.
+.TP
+.I dbus_interface
+Interface for DBus action taken when event is due.
+.TP
+.I dbus_service
+Service to be called on DBus action. If other than NULL, the DBus action will
+be a method call.
+.TP
+.I dbus_path
+Path for DBus action. If defined, the action on event will be a DBus action.
+.TP
+.I dbus_name
+Name for DBus action. Either the DBus method name or signal name.
+.TP
+.I exec_name
+Command to run as events action. Only used, if
+.I dbus_path
+is not set. The format is as accpted by glib's g_shell_parse_argv.
+.TP
+.I flags
+Options for the event, the value should be members of enumeration
+alarmeventflags bitwise or'd together.
+.TP
+.I snoozed
+How much the event has been snoozed, only applies to getting an event, when
+setting one, this has no effect.
+.PP
+
+The flags of an event are specified by enumeration
+.I alarmeventflags
+, which is defined in
+.I <alarm_event.h>
+as follows:
+.sp
+.RS
+.nf
+typedef enum {
+	ALARM_EVENT_NO_DIALOG = 1 << 0,
+	ALARM_EVENT_NO_SNOOZE = 1 << 1,
+	ALARM_EVENT_SYSTEM = 1 << 2,
+	ALARM_EVENT_BOOT = 1 << 3,
+	ALARM_EVENT_ACTDEAD = 1 << 4,
+	ALARM_EVENT_SHOW_ICON = 1 << 5,
+	ALARM_EVENT_RUN_DELAYED = 1 << 6,
+	ALARM_EVENT_CONNECTED = 1 << 7,
+	ALARM_EVENT_ACTIVATION = 1 << 8,
+	ALARM_EVENT_POSTPONE_DELAYED = 1 << 9,
+	ALARM_EVENT_BACK_RESCHEDULE = 1 << 10,
+} alarmeventflags;
+.fi
+.RE
+.pp
+The meanings for values in
+.I alarmeventflags
+are:
+.TP
+.I ALARM_EVENT_NO_DIALOG
+When the alarm is launched, it shall not show a dialog, but instead do the
+action immediately.
+.TP
+.I ALARM_EVENT_NO_SNOOZE
+When the alarm dialog is shown, the snooze button will be disabled.
+.TP
+.I ALARM_EVENT_SYSTEM
+The DBus call should be done over system bus instead of session bus.
+.TP
+.I ALARM_EVENT_BOOT
+The event should start the device, if shut down.
+.TP
+.I ALARM_EVENT_ACTDEAD
+If the device is shut down, it will be started with display off and shut down
+after the action is done.
+.TP
+.I ALARM_EVENT_SHOW_ICON
+While the event is on queue, a icon should be shown in the status bar.
+.TP
+.I ALARM_EVENT_RUN_DELAYED
+Sould the event be run, even if missed or jumped over.
+.TP
+.I ALARM_EVENT_CONNECTED
+The event should only be run when there is an active connection. If no
+connection is available, the event will be launched when a connection is
+available.
+.TP
+.I ALARM_EVENT_ACTIVATION
+Should the DBus action of the event use DBus activation, i.e. should the
+service be started, if not already running.
+.TP
+.I ALARM_EVENT_POSPONE_DELAYED
+If the event is missed by more than a day, it will be moved forward to the
+next day. If less than a day, it will be launched.
+.TP
+.I ALARM_EVENT_BACK_RESCHEDULE
+If time is changed backwards, the event is moved backwards too. Only applies
+to recurring alarms.
+
+The
+.BR alarm_event_add ()
+funcion adds an event to the
+.BR alarmd (8)'s
+queue. The returned value is a unique identifier for the added event. Should
+the adding fail, 0 is returned. See
+.BR "ERROR REPORTING" .
+
+The
+.BR alarm_event_del ()
+function removes an event from
+.BR alarmd (8)'s
+queue. The event deleted is identified by the
+.I cookie_t
+unique identifier returned by
+.BR alarm_event_add ()
+or
+.BR alarm_event_query ().
+If an event was removed, 1 is returned, otherwise 0 is returned. See
+.BR "ERROR REPORTING".
+
+The
+.BR alarm_event_query ()
+queries
+.BR alarmd (8)'s
+queue for events matching the details. The 
+.I first
+and
+.I last
+define a timespan, in which events are queried. The
+.I flag_mask
+defines which flags we're interested in, got by bitwise OR'in the members
+of
+.I alarmeventflags
+enumeration. The 
+.I flags
+specifies the wanted values for the flags. The returned value is 0 terminated
+newly allocated array of
+.I cookie_t
+identifiers for the events. The array should be freed with
+.BR free (2)
+when no longer used. On error NULL is returned; if no events mached the
+query, the return value will be 0 terminated empty array, which needs to be
+freed.
+
+The
+.BR alarm_event_get ()
+gets details about an event in
+.BR alarmd (8)'s
+queue. The return value is newly allocated, as are all the strings in it.
+The return values should be freed with
+.BR alarm_event_free ().
+Otherwise you need to free all the string member fields yourself.
+
+The
+.BR alarmd_get_error ()
+will return a error code for the last action. See
+.BR "ERROR REPORTING" .
+
+.BR alarm_event_free ()
+frees a dynamically allocated
+.I alarm_event_t
+and all it's string members. Mainly of use with
+.BR alarm_event_get ().
+
+.SH LOCALISED STRINGS
+If you need the message in alarm dialog to be in whatever language is used
+in the device, you can use specially formatted strings. The translations
+are fetched with
+.BR dgettext (3).
+To get your message translated, you need to specify the package from which
+to fetch the translation and the message id. The format is as follows:
+.br
+{message domain,message id}.
+.br
+If the translation contains "%s", the
+the replacements for these can be given too:
+.br
+{message domain,message id,replacement1,replacement2...}
+.br
+The replacement may be in form {...}, but cannot contain anything else, in the
+main string the translated part can be embedded. Postitional parameters or
+any other format options than %s are not supported.
+.PP
+If your message comes from user, you probably want to use
+.BR alarm_escape_string (3)
+to escape all such formatting from the string.
+
+.SH ERROR REPORTING
+Whenever an error occurs during a call to any of the functions, a error code
+is set, which can be get with
+.BR alarmd_get_error ().
+
+The error codes are specified by enumeration
+.I alarm_error_t
+which is specified in
+.I <alarm_event.h>
+as follows:
+.sp
+.RS
+.nf
+typedef enum {
+	ALARMD_SUCCESS,
+	ALARMD_ERROR_DBUS,
+	ALARMD_ERROR_CONNECTION,
+	ALARMD_ERROR_INTERNAL,
+	ALARMD_ERROR_MEMORY,
+	ALARMD_ERROR_ARGUMENT
+} alarm_error_t;
+.fi
+.RE
+.pp
+The meanings for codes in
+.I alarm_error_t
+are:
+.TP
+.I ALARMD_SUCCESS
+No error occurred.
+.TP
+.I ALARMD_ERROR_DBUS
+An error with DBus occurred, probably couldn't get a DBus connection.
+.TP
+.I ALARMD_ERROR_CONNECTION
+Could not contact
+.BR alarmd (8)
+via DBus.
+.TP
+.I ALARMD_ERROR_INTERNAL
+Some
+.BR alarmd (8)
+or
+.B libalarm
+internal error, possibly a version mismatch. 
+.TP
+.I ALARMD_ERROR_MEMORY
+A memory allocation failed.
+.TP
+.I ALARMD_ERROR_ARGUMENT
+An argument given by caller was invalid.
+
+.SH SEE ALSO
+.BR alarmd (8)
+.BR alarmtool (8)
+.BR alarm_escape_string (3)
+
+.SH HISTORY
+Oct  5 2006: Initial version of this manual page.
+
+.SH COPYRIGHT
+Copyright \(co 2006 Nokia Corporation.
+
+This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
+conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.

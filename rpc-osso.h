@@ -48,7 +48,7 @@ osso_context_t *init_osso(void);
  * @queue: The queue that the callbacks should affect.
  *
  * Starts listening on dbus system and session buses for incoming requests.
- **/
+ **/ 
 void set_osso_callbacks(osso_context_t *osso, AlarmdQueue *queue);
 
 /**

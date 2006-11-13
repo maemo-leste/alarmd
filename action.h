@@ -44,8 +44,8 @@
  * Defines the ways a action can be acknowledged.
  **/
 typedef enum {
-       ACK_NORMAL,
-       ACK_SNOOZE
+	ACK_NORMAL,
+	ACK_SNOOZE
 } AlarmdActionAckType;
 
 #define ALARMD_TYPE_ACTION (alarmd_action_get_type())
@@ -58,17 +58,17 @@ typedef enum {
 typedef struct _AlarmdAction AlarmdAction;
 struct _AlarmdAction
 {
-       AlarmdObject parent_instance;
+	AlarmdObject parent_instance;
 };
 
 typedef struct _AlarmdActionClass AlarmdActionClass;
 struct _AlarmdActionClass
 {
-       AlarmdObjectClass parent_class;
-
-       void (*run)(AlarmdAction *action, gboolean delayed);
-       void (*acknowledge)(AlarmdAction *action, AlarmdActionAckType ack_type);
-       gboolean (*need_power_up)(AlarmdAction *action);
+	AlarmdObjectClass parent_class;
+	
+	void (*run)(AlarmdAction *action, gboolean delayed);
+	void (*acknowledge)(AlarmdAction *action, AlarmdActionAckType ack_type);
+	gboolean (*need_power_up)(AlarmdAction *action);
 };
 
 /**
@@ -114,11 +114,11 @@ void alarmd_action_run(AlarmdAction *action, gboolean delayed);
  * @action: #AlarmdAction that is acknowledged.
  * @ack_type: %ACK_NORMAL if the action was normally acknowledged or
  * %ACK_SNOOZE if it was snoozed.
- *
+ * 
  * Emits "acknowledge" -signal on the given #AlarmdAction.
  **/
 void alarmd_action_acknowledge(AlarmdAction *action,
-               AlarmdActionAckType ack_type);
+		AlarmdActionAckType ack_type);
 
 /**
  * alarmd_action_need_power_up:

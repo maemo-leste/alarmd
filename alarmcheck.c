@@ -24,15 +24,15 @@
 #include <alarmd/alarm_data.h>
 
 typedef enum {
-       ALARM_ERR = -1,                 /* The alarm was spurious
-                                        * or something failed
-                                        */
-       ALARM_NORMAL = 0,               /* Alarm; bootup in normal mode */
-       ALARM_ACTDEAD = 1,              /* Alarm; bootup in acting dead mode */
-       ALARM_FUTURE = 2                /* Alarm reprogrammed; shutdown */
+	ALARM_ERR = -1,			/* The alarm was spurious
+					 * or something failed
+					 */
+	ALARM_NORMAL = 0,		/* Alarm; bootup in normal mode */
+	ALARM_ACTDEAD = 1,		/* Alarm; bootup in acting dead mode */
+	ALARM_FUTURE = 2		/* Alarm reprogrammed; shutdown */
 } alarmretval;
 
-#define TIME_T_24H                     24 * 60 * 60    /* 24h in seconds */
+#define TIME_T_24H			24 * 60 * 60	/* 24h in seconds */
 
 /*
  * Check the alarm status
@@ -43,55 +43,55 @@ typedef enum {
  */
 static int check_alarm_status(void)
 {
-       struct cal *cal_data = NULL;
-       time_t alarm_time = (time_t)-1;
-       time_t now;
-       int olderrno = errno;
-       int status = ALARM_ERR;
-       alarmaction action = ALARM_ACTION_INVALID;
+	struct cal *cal_data = NULL;
+	time_t alarm_time = (time_t)-1;
+	time_t now;
+	int olderrno = errno;
+	int status = ALARM_ERR;
+	alarmaction action = ALARM_ACTION_INVALID;
 
-       /* If time() fails, ignore the alarm */
-       if ((now = time(NULL)) == -1) {
-               errno = olderrno;
-               goto EXIT;
-       }
+	/* If time() fails, ignore the alarm */
+	if ((now = time(NULL)) == -1) {
+		errno = olderrno;
+		goto EXIT;
+	}
 
-       /* Retrieve the alarm stored in CAL */
-       if (cal_init(&cal_data) == 0) {
-               void *ptr = NULL;
-               unsigned long len;
+	/* Retrieve the alarm stored in CAL */
+	if (cal_init(&cal_data) == 0) {
+		void *ptr = NULL;
+		unsigned long len;
 
-               if (cal_read_block(cal_data, "alarm", &ptr, &len,
-                                  CAL_FLAG_USER) == 0) {
-                       struct alarm_data *alarmdata = (struct alarm_data *)ptr;
+		if (cal_read_block(cal_data, "alarm", &ptr, &len,
+				   CAL_FLAG_USER) == 0) {
+			struct alarm_data *alarmdata = (struct alarm_data *)ptr;
 
-                       alarm_time = alarm_data->alarm_time;
-                       action = alarm_data->action;
-               } else {
-                       goto EXIT;
-               }
+			alarm_time = alarm_data->alarm_time;
+			action = alarm_data->action;
+		} else {
+			goto EXIT;
+		}
 
-               cal_finish(cal_data);
-       } else {
-               goto EXIT;
-       }
+		cal_finish(cal_data);
+	} else {
+		goto EXIT;
+	}
 
-       /* If alarm_time is == -1, then no alarm has been set */
-       if (alarm_time == -1) {
-               status = ALARM_ERR;
-               goto EXIT;
-       } else if ((alarm_time - now) > TIME_T_24H) {
-               status = ALARM_FUTURE;
+	/* If alarm_time is == -1, then no alarm has been set */
+	if (alarm_time == -1) {
+		status = ALARM_ERR;
+		goto EXIT;
+	} else if ((alarm_time - now) > TIME_T_24H) {
+		status = ALARM_FUTURE;
 
-       } else {
-               if (action == ALARM_ACTION_NORMAL)
-                       status = ALARM_NORMAL;
-               else if (action == ALARM_ACTION_ACTDEAD)
-                       status = ALARM_ACTDEAD;
-               else
-                       status = ALARM_ERR;
-       }
+	} else {
+		if (action == ALARM_ACTION_NORMAL)
+			status = ALARM_NORMAL;
+		else if (action == ALARM_ACTION_ACTDEAD)
+			status = ALARM_ACTDEAD;
+		else
+			status = ALARM_ERR;
+	}
 
 EXIT:
-       return status;
+	return status;
 }

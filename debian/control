@@ -9,7 +9,7 @@ Standards-Version: 3.7.2
 Package: alarmd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: osso-systemui-alarm (<< 0.1.5.1)
+Conflicts: osso-systemui-alarm (<< 0.1.6.3)
 Description: Generic alarm dispatcher
  This package contains the alarm daemon which provides event
  handling features for applications.

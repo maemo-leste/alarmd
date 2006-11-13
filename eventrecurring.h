@@ -37,13 +37,13 @@
 typedef struct _AlarmdEventRecurring AlarmdEventRecurring;
 struct _AlarmdEventRecurring
 {
-       AlarmdEvent parent_instance;
+	AlarmdEvent parent_instance;
 };
 
 typedef struct _AlarmdEventRecurringClass AlarmdEventRecurringClass;
 struct _AlarmdEventRecurringClass
 {
-       AlarmdEventClass parent_class;
+	AlarmdEventClass parent_class;
 };
 
 /**

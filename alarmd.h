@@ -35,17 +35,17 @@
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
-#define _(__str)               gettext(__str)
+#define _(__str)		gettext(__str)
 #else
 #undef bindtextdomain
 #define bindtextdomain(__domain, __directory)
 #undef textdomain
 #define textdomain(__domain)
-#define _(__str)               __str
+#define _(__str)		__str
 #endif /* ENABLE_NLS */
 
-#define __stringify_1(x)       #x
-#define __stringify(x)         __stringify_1(x)
+#define __stringify_1(x)	#x
+#define __stringify(x)		__stringify_1(x)
 
 GMainLoop *mainloop;
 

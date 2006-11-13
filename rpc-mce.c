@@ -29,36 +29,39 @@
 
 void mce_set_alarm_visibility(DBusConnection *system_bus, gboolean visible)
 {
-       ENTER_FUNC;
+	const gchar *mode = visible ? MCE_ALARM_VISIBLE : MCE_ALARM_OFF;
+	ENTER_FUNC;
 
-       (void)system_bus;
-       (void)visible;
+	DEBUG("Telling mce alarm is %s", visible ? "visible" : "off");
 
-       /* Noop in IT2006. */
-
-       LEAVE_FUNC;
+	dbus_do_call(system_bus, NULL, FALSE,
+			MCE_SERVICE, MCE_REQUEST_PATH, MCE_REQUEST_IF,
+			MCE_ALARM_MODE_CHANGE_REQ,
+			DBUS_TYPE_STRING, &mode,
+			DBUS_TYPE_INVALID);
+	LEAVE_FUNC;
 }
 
 void mce_request_powerup(DBusConnection *system_bus)
 {
-       ENTER_FUNC;
-       dbus_do_call(system_bus, NULL, FALSE,
-                       MCE_SERVICE,
-                       MCE_REQUEST_PATH,
-                       MCE_REQUEST_IF,
-                       MCE_POWERUP_REQ,
-                       DBUS_TYPE_INVALID);
-       LEAVE_FUNC;
+	ENTER_FUNC;
+	dbus_do_call(system_bus, NULL, FALSE,
+			MCE_SERVICE,
+			MCE_REQUEST_PATH,
+			MCE_REQUEST_IF,
+			MCE_POWERUP_REQ,
+			DBUS_TYPE_INVALID);
+	LEAVE_FUNC;
 }
 
 void mce_request_shutdown(DBusConnection *system_bus)
 {
-       ENTER_FUNC;
-       dbus_do_call(system_bus, NULL, FALSE,
-                       MCE_SERVICE,
-                       MCE_REQUEST_PATH,
-                       MCE_REQUEST_IF,
-                       MCE_SHUTDOWN_REQ,
-                       DBUS_TYPE_INVALID);
-       LEAVE_FUNC;
+	ENTER_FUNC;
+	dbus_do_call(system_bus, NULL, FALSE,
+			MCE_SERVICE,
+			MCE_REQUEST_PATH,
+			MCE_REQUEST_IF,
+			MCE_SHUTDOWN_REQ,
+			DBUS_TYPE_INVALID);
+	LEAVE_FUNC;
 }

@@ -42,7 +42,7 @@
  * Returns: New AlarmdQueue filled with events.
  **/
 AlarmdQueue *init_queue(const gchar *queue_file, const gchar *next_time_file,
-               const gchar *next_mode_file);
+		const gchar *next_mode_file);
 
 /**
  * alarmd_type_init:

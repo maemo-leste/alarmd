@@ -35,18 +35,18 @@
 typedef struct _AlarmdQueue AlarmdQueue;
 struct _AlarmdQueue
 {
-       AlarmdObject parent_instance;
+	AlarmdObject parent_instance;
 };
 
 typedef struct _AlarmdQueueClass AlarmdQueueClass;
 struct _AlarmdQueueClass
 {
-       AlarmdObjectClass parent_class;
+	AlarmdObjectClass parent_class;
 
-       glong (*add_event)(AlarmdQueue *queue, AlarmdEvent *event);
-       gboolean (*remove_event)(AlarmdQueue *queue, glong event_id);
-       AlarmdEvent *(*get_event)(AlarmdQueue *queue, glong event_id);
-       glong *(*query_events)(AlarmdQueue *queue, gint64 start_time, gint64 end_time, gint32 flag_mask, gint32 flags, guint *n_events);
+	glong (*add_event)(AlarmdQueue *queue, AlarmdEvent *event);
+	gboolean (*remove_event)(AlarmdQueue *queue, glong event_id);
+	AlarmdEvent *(*get_event)(AlarmdQueue *queue, glong event_id);
+	glong *(*query_events)(AlarmdQueue *queue, gint64 start_time, gint64 end_time, gint32 flag_mask, gint32 flags, guint *n_events);
 };
 
 /**

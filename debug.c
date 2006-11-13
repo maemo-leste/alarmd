@@ -28,34 +28,34 @@ static guint depth = 0;
 
 void enter_func(const char *name)
 {
-       guint i;
-       for (i = 0; i < depth; i++) {
-               fprintf(stderr, " ");
-       }
-       fprintf(stderr, "Entering %s\n", name);
-       depth++;
+	guint i;
+	for (i = 0; i < depth; i++) {
+		fprintf(stderr, " ");
+	}
+	fprintf(stderr, "Entering %s\n", name);
+	depth++;
 }
 
 void leave_func(const char *name)
 {
-       guint i;
-       depth--;
-       for (i = 0; i < depth; i++) {
-               fprintf(stderr, " ");
-       }
-       fprintf(stderr, "Leaving %s\n", name);
+	guint i;
+	depth--;
+	for (i = 0; i < depth; i++) {
+		fprintf(stderr, " ");
+	}
+	fprintf(stderr, "Leaving %s\n", name);
 }
 
 void dbg(const char *func, const char *format, ...)
 {
-       guint i;
-       va_list args;
-       for (i = 0; i < depth; i++) {
-               fprintf(stderr, " ");
-       }
-       fprintf(stderr, "*** %s: ", func);
-       va_start(args, format);
-       vfprintf(stderr, format, args);
-       va_end(args);
-       fprintf(stderr, "\n");
+	guint i;
+	va_list args;
+	for (i = 0; i < depth; i++) {
+		fprintf(stderr, " ");
+	}
+	fprintf(stderr, "*** %s: ", func);
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+	fprintf(stderr, "\n");
 }

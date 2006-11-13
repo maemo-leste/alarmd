@@ -35,13 +35,13 @@
 typedef struct _AlarmdActionExec AlarmdActionExec;
 struct _AlarmdActionExec
 {
-       AlarmdActionDialog parent_instance;
+	AlarmdActionDialog parent_instance;
 };
 
 typedef struct _AlarmdActionExecClass AlarmdActionExecClass;
 struct _AlarmdActionExecClass
 {
-       AlarmdActionDialogClass parent_class;
+	AlarmdActionDialogClass parent_class;
 };
 
 /**
