@@ -278,15 +278,17 @@ static void _alarmd_event_recurring_time_changed(AlarmdObject *object)
 	time_t alarm_time;
 	time_t now_time = time(NULL);
 	GObject *action;
-	gint flags;
+	gint flags = 0;
 
 	ENTER_FUNC;
 	g_object_get(event, "action", &action, NULL);
-	g_object_get(action, "flags", &flags, NULL);
-
-	alarm_time = alarmd_event_get_time(ALARMD_EVENT(event));
+	if (action) {
+		g_object_get(action, "flags", &flags, NULL);
+		g_object_unref(action);
+	}
 
 	if ((flags & ALARM_EVENT_BACK_RESCHEDULE)) {
+		alarm_time = alarmd_event_get_time(ALARMD_EVENT(event));
 
 		if (alarm_time > now_time + priv->recurr_interval * 60) {
 			glong count = (alarm_time - now_time) / (priv->recurr_interval * 60);

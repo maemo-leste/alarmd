@@ -1,3 +1,9 @@
+alarmd (0.4.1) unstable; urgency=low
+
+  * Add missing g_object_unref. Fixes: NB#47930
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 27 Nov 2006 17:06:10 +0200
+
 alarmd (0.4.0) unstable; urgency=low
 
   * Version bump.
