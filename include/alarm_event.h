@@ -79,13 +79,27 @@ typedef enum {
 						  backwards. */
 } alarmeventflags;
 
+/**
+ * alarm_error_t:
+ * @ALARMD_SUCCESS: No error occurred during the operation.
+ * @ALARMD_ERROR_DBUS: An error with DBus occurred, probably couldn't get a
+ * DBus connection.
+ * @ALARMD_ERROR_INTERNAL: An libalarm internal error occurred, possibly a
+ * version mismatch.
+ * @ALARMD_ERROR_MEMORY: Memory exhausted while running operation.
+ * @ALARMD_ERROR_ARGUMENT: An argument given by caller was invalid.
+ * @ALARMD_ERROR_NOT_RUNNING: Alarmd was not running.
+ *
+ * Error codes for an alarmd operation.
+ **/
 typedef enum {
 	ALARMD_SUCCESS,
 	ALARMD_ERROR_DBUS,
 	ALARMD_ERROR_CONNECTION,
 	ALARMD_ERROR_INTERNAL,
 	ALARMD_ERROR_MEMORY,
-	ALARMD_ERROR_ARGUMENT
+	ALARMD_ERROR_ARGUMENT,
+	ALARMD_ERROR_NOT_RUNNING
 } alarm_error_t;
 	
 /**
@@ -156,8 +170,9 @@ cookie_t alarm_event_add(alarm_event_t *event);
  *
  * Deletes alarm from the alarm queue.
  * The alarm with the event_cookie identifier will be removed from the
- * alarm queue, if it exists.
- * Returns: 1 If alarm was on the queue, 0 otherwise.
+ * alarm queue, if it exists. For more details on errors, use
+ * alarmd_get_eroror.
+ * Returns: 1 If alarm was on the queue, 0 if not and -1 on errors.
  **/
 int alarm_event_del(cookie_t event_cookie);
 

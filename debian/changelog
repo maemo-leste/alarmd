@@ -1,3 +1,9 @@
+alarmd (0.4.2) unstable; urgency=low
+
+  * Add error state to alarm_event_del.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 28 Nov 2006 13:32:00 +0200
+
 alarmd (0.4.1) unstable; urgency=low
 
   * Add missing g_object_unref. Fixes: NB#47930

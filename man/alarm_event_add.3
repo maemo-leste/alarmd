@@ -219,7 +219,8 @@ unique identifier returned by
 .BR alarm_event_add ()
 or
 .BR alarm_event_query ().
-If an event was removed, 1 is returned, otherwise 0 is returned. See
+If an event was removed, 1 is returned, if event was not on queue 0 is
+retuned, and on errors return value is -1. See
 .BR "ERROR REPORTING".
 
 The
@@ -308,7 +309,8 @@ typedef enum {
 	ALARMD_ERROR_CONNECTION,
 	ALARMD_ERROR_INTERNAL,
 	ALARMD_ERROR_MEMORY,
-	ALARMD_ERROR_ARGUMENT
+	ALARMD_ERROR_ARGUMENT,
+	ALARMD_ERROR_NOT_RUNNING
 } alarm_error_t;
 .fi
 .RE
@@ -340,6 +342,10 @@ A memory allocation failed.
 .TP
 .I ALARMD_ERROR_ARGUMENT
 An argument given by caller was invalid.
+.TP
+.I ALARMD_ERROR_NOT_RUNNING
+.BR alarmd (8)
+was not running (or not connected to the DBus bus).
 
 .SH SEE ALSO
 .BR alarmd (8)

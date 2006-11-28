@@ -220,7 +220,7 @@ failure).
 The alarm_event_del function removes an event from the event queue. The
 identifier passed should be as acquired from either alarm_event_add or
 alarm_event_query. If the event was found and successfully removed, returns 1,
-otherwise returns 0.
+if the event was not found returns 0, and if an error occurred returns -1.
 
 ==== alarm_event_query function ====
 

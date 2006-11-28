@@ -133,6 +133,7 @@ static DBusMessage *_alarm_event_dbus_call(const char *method, int first_arg_typ
   DBusMessage *msg = NULL;
   DBusMessage *reply = NULL;
   DBusConnection *conn = NULL;
+  DBusError error;
   va_list arg_list;
 
   if (!method) {
@@ -165,7 +166,21 @@ static DBusMessage *_alarm_event_dbus_call(const char *method, int first_arg_typ
   /* Append given arguments. */
   dbus_message_append_args_valist(msg, first_arg_type, arg_list);
   /* Put the message to dbus queue. */
-  reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, NULL);
+  dbus_error_init(&error);
+  reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &error);
+  if (dbus_error_is_set(&error)) {
+	  if (dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
+		  error_code = ALARMD_ERROR_MEMORY;
+	  } else if (dbus_error_has_name(&error, DBUS_ERROR_SERVICE_UNKNOWN) ||
+			  dbus_error_has_name(&error, DBUS_ERROR_NAME_HAS_NO_OWNER)) {
+		  error_code = ALARMD_ERROR_NOT_RUNNING;
+	  } else if (dbus_error_has_name(&error, DBUS_ERROR_NO_REPLY)) {
+		  error_code = ALARMD_ERROR_CONNECTION;
+	  } else {
+		  error_code = ALARMD_ERROR_DBUS;
+	  }
+	  dbus_error_free(&error);
+  }
   /* Close the connection. */
   dbus_connection_close(conn);
   dbus_connection_unref(conn);
@@ -310,7 +325,8 @@ int alarm_event_del(cookie_t event_cookie)
 	error_code = ALARMD_SUCCESS;
 
 	if (!event_cookie) {
-		return 0;
+		error_code = ALARMD_ERROR_ARGUMENT;
+		return -1;
 	}
 
 	reply = _alarm_event_dbus_call(ALARM_EVENT_DEL,
@@ -318,7 +334,7 @@ int alarm_event_del(cookie_t event_cookie)
 			DBUS_TYPE_INVALID);
 
 	if (reply == NULL) {
-		return 0;
+		return -1;
 	}
 
 	dbus_error_init(&error);
