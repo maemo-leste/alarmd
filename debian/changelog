@@ -1,3 +1,9 @@
+alarmd (0.4.3) unstable; urgency=low
+
+  * Remove invalid sanity check. Fixes: NB#50448
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  5 Jan 2007 16:23:18 +0200
+
 alarmd (0.4.2) unstable; urgency=low
 
   * Add error state to alarm_event_del.

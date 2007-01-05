@@ -695,15 +695,10 @@ int alarmd_set_default_snooze(unsigned int snooze)
 unsigned int alarmd_get_default_snooze(void)
 {
 	DBusMessage *reply;
-	dbus_uint32_t snooze;
+	dbus_uint32_t snooze = 0;
 	DBusError error;
 
 	error_code = ALARMD_SUCCESS;
-
-	if (snooze == 0) {
-		error_code = ALARMD_ERROR_ARGUMENT;
-		return 0;
-	}
 
 	reply = _alarm_event_dbus_call(ALARMD_SNOOZE_GET, DBUS_TYPE_INVALID);
 
