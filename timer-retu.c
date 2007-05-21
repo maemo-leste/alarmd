@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006 Nokia Corporation
+ * Copyright (C) 2006-2007 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -21,7 +21,6 @@
 
 #include <glib/gmain.h>
 #include <glib/gtypes.h>
-#include <dbus/dbus.h>
 #include <time.h>
 #include <osso-log.h>
 #include <string.h>
@@ -82,6 +81,12 @@ gboolean plugin_initialize(TimerPlugin *plugin)
 	plugin->can_power_up = TRUE;
 	plugin->priority = 5;
 	plugin->plugin_data = NULL;
+
+	if (retutime_query_alarm()) {
+		retutime_ack_alarm();
+	} else {
+		retutime_disable_alarm();
+	}
 
 	LEAVE_FUNC;
 	return TRUE;

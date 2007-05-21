@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006 Nokia Corporation
+ * Copyright (C) 2006-2007 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -317,11 +317,24 @@ static void _alarmd_action_dialog_real_run(gpointer action, gboolean snoozed)
 			alarmd_action_dialog_do_action(ALARMD_ACTION_DIALOG(action));
 		}
 	} else {
-		DBusConnection *system_bus = get_dbus_connection(DBUS_BUS_SYSTEM);
-		mce_request_powerup(system_bus);
-		dbus_connection_unref(system_bus);
-		priv->pending |= PEND_SERVICE;
-		dbus_watch_name(STATUSBAR_SERVICE, _alarmd_action_dialog_delayed_run, action);
+		if (flags & ALARM_EVENT_BOOT) {
+			DBusConnection *system_bus = get_dbus_connection(DBUS_BUS_SYSTEM);
+			mce_request_powerup(system_bus);
+			dbus_connection_unref(system_bus);
+			priv->pending |= PEND_SERVICE;
+			dbus_watch_name(STATUSBAR_SERVICE,
+					_alarmd_action_dialog_delayed_run,
+					action);
+		} else if (flags & ALARM_EVENT_RUN_DELAYED) {
+			priv->pending |= PEND_SERVICE;
+			dbus_watch_name(STATUSBAR_SERVICE,
+					_alarmd_action_dialog_delayed_run,
+					action);
+		} else if (!systemui_is_acting_dead()) {
+			alarmd_action_dialog_do_action(ALARMD_ACTION_DIALOG(action));
+		} else {
+			alarmd_action_acknowledge(action, ACK_NORMAL);
+		}
 	}
 
 	LEAVE_FUNC;
@@ -363,8 +376,7 @@ static void _alarmd_action_dialog_run(AlarmdAction *action, gboolean delayed)
 	g_object_get(action, "flags", &flags, NULL);
 	if (delayed && !(flags & ALARM_EVENT_RUN_DELAYED)) {
 		alarmd_action_acknowledge(action, ACK_NORMAL);
-	} else if ((flags & ALARM_EVENT_CONNECTED) &&
-			!ic_get_connected()) {
+	} else if (flags & ALARM_EVENT_CONNECTED) {
 		ic_wait_connection(_alarmd_action_dialog_connected, action);
 		priv->pending |= PEND_CONN;
 	} else if (!(flags & ALARM_EVENT_NO_DIALOG)) {

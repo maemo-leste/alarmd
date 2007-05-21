@@ -1,13 +1,16 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-# GNU copyright 1997 to 1999 by Joey Hess.
-
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
-
-
-
+# Copyright (C) 2006-2007 Nokia Corporation.
+# Written by David Weinehall
+#
+# alarmd and libalarm are distributed in the hope that they will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
 CFLAGS = -Wall -g
 
@@ -20,16 +23,12 @@ ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -mthumb
 endif
 
-configure:
-
 build: build-stamp
 
 build-stamp:
 	dh_testdir
 
-	# Add here commands to compile the package.
 	CFLAGS="$(CFLAGS)" $(MAKE)
-	#/usr/bin/docbook-to-man debian/oad.sgml > oad.1
 
 	touch build-stamp
 
@@ -38,7 +37,6 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 
-	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
 
 	dh_clean 
@@ -49,45 +47,32 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Add here commands to install the package into debian/oad.
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 
+binary-indep:
 
-# Build architecture-independent files here.
-binary-indep: build install
-# We have nothing to do by default.
-
-# Build architecture-dependent files here.
 binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs 
 	dh_installdocs
-	dh_installexamples
 	dh_install --source=debian/tmp
-#	dh_installmenu
-#	dh_installdebconf	
-#	dh_installlogrotate
-#	dh_installemacsen
-#	dh_installpam
-#	dh_installmime
 	dh_installinit -- defaults 99 1
-#	dh_installcron
-#	dh_installinfo
 	dh_installman
+	# Install man page symlinks to alarm_event_add
 	for p in alarm_event_del alarm_event_get alarm_event_query alarmd_get_error; do \
 		ln -s alarm_event_add.3.gz debian/libalarm-dev/usr/share/man/man3/$$p.3.gz ; \
 	done
+	# Install man page symlinks to alarm_escape_string
 	for p in alarm_unescape_string alarm_unescape_string_noallog; do \
 		ln -s alarm_escape_string.3.gz debian/libalarm-dev/usr/share/man/man3/$$p.3.gz ; \
 	done
+	# Install man page symlink to alarmd_set_default_snooze
 	ln -s alarmd_set_default_snooze.3.gz debian/libalarm-dev/usr/share/man/man3/alarmd_get_default_snooze.3.gz
 	dh_link
 	dh_strip --dbg-package=libalarm0
 	dh_compress
 	dh_fixperms
-#	dh_perl
-#	dh_python
 	dh_makeshlibs -V
 	dh_installdeb
 	dh_shlibdeps
@@ -95,5 +80,5 @@ binary-arch: build install
 	dh_md5sums
 	dh_builddeb
 
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install configure
+binary: binary-arch binary-indep
+.PHONY: build clean binary-arch binary-indep binary install

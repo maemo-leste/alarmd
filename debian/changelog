@@ -1,3 +1,30 @@
+alarmd (0.4.92) unstable; urgency=low
+
+  * Fix trivial leak. Fixes: NB#57867
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 21 May 2007 17:16:05 +0300
+
+alarmd (0.4.91) unstable; urgency=low
+
+  * Minor cleanups.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 23 Apr 2007 13:50:06 +0300
+
+alarmd (0.4.90) unstable; urgency=low
+
+  * Add missing build-dependency to libosso-dev.
+  * Backport changes from trunk.
+  * Handle missed alarms properly in acting dead.
+  * Clear alarm from retu on alarmd startup.
+  * Don't wake up the device from acting dead if the event doesn't have
+    BOOT flag. Fixes: NB#54179
+  * Use libconic instead of listening directly for osso-ic signals.
+  * Timer plugins don't use dbus.
+  * Fix alarm_event_query in libalarm.
+  * Stop using deprecated dbus_message_iter_get_array_len.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 16 Apr 2007 10:27:00 +0300
+
 alarmd (0.4.3) unstable; urgency=low
 
   * Remove invalid sanity check. Fixes: NB#50448

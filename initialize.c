@@ -225,6 +225,7 @@ static gboolean _real_write_data(struct files_t *files)
 			fclose(write);
 		}
 	}
+	g_free(old_contents);
 	
 	LEAVE_FUNC;
 	return FALSE;

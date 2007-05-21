@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006 Nokia Corporation
+ * Copyright (C) 2006-2007 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -19,7 +19,6 @@
  * 02110-1301 USA
  */
 
-#define DBUS_API_SUBJECT_TO_CHANGE
 #include <stdlib.h>
 #include <string.h>
 #include <dbus/dbus.h>
@@ -359,8 +358,6 @@ cookie_t *alarm_event_query(const time_t first, const time_t last,
 {
 	DBusMessage *reply;
 	DBusMessageIter iter;
-	DBusMessageIter sub;
-	int count = 0, i;
 	cookie_t *retval;
 
 	dbus_int64_t first_64 = first;
@@ -384,17 +381,15 @@ cookie_t *alarm_event_query(const time_t first, const time_t last,
 	}
 
 	if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_ARRAY) {
+		const dbus_int32_t *array;
+		int count, i;
+		DBusMessageIter sub;
 		dbus_message_iter_recurse(&iter, &sub);
-		count = dbus_message_iter_get_array_len(&sub);
+		dbus_message_iter_get_fixed_array(&sub, &array, &count);
 		retval = (cookie_t *)calloc(count + 1, sizeof(cookie_t));
 
 		for (i = 0; i < count; i++) {
-			if (dbus_message_iter_get_arg_type(&sub) !=
-					DBUS_TYPE_INT32) {
-				break;
-			}
-			dbus_message_iter_get_basic(&sub, &retval[i]);
-			dbus_message_iter_next(&sub);
+			retval[i] = (cookie_t)array[i];
 		}
 	} else {
 		retval = (cookie_t *)calloc(1, sizeof(cookie_t));

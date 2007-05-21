@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006 Nokia Corporation
+ * Copyright (C) 2006-2007 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -39,14 +39,6 @@
  * Callback to be called when a connection is connected.
  **/
 typedef void (*ICConnectedNotifyCb)(gpointer user_data);
-
-/**
- * ic_get_connected:
- *
- * Gets the connection status from ic.
- * Returns: TRUE if there is an active connection.
- **/
-gboolean ic_get_connected(void);
 
 /**
  * ic_wait_connection:

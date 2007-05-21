@@ -2,8 +2,8 @@ Source: alarmd
 Section: utils
 Priority: optional
 Maintainer: David Weinehall <david.weinehall@nokia.com>
-Uploaders: Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>
-Build-Depends: debhelper (>= 4.0.0), libtool, libglib2.0-0 (>= 2.6.0), osso-systemui-dbus-dev, libxml2-dev, mce-dev (>= 1.4.0), osso-ic-dev
+Uploaders: Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>, Philippe De Swert <philippe.de-swert@nokia.com>
+Build-Depends: debhelper (>= 4.0.0), libtool, libglib2.0-0 (>= 2.6.0), osso-systemui-dbus-dev, libxml2-dev, mce-dev (>= 1.4.0), libconic0-dev, libdbus-1-dev (>= 0.50), libdbus-glib-1-dev, libosso-dev
 Standards-Version: 3.7.2
 
 Package: alarmd
@@ -17,12 +17,14 @@ Description: Generic alarm dispatcher
 Package: libalarm0
 Architecture: any
 Depends: ${shlibs:Depends}
+Section: libs
 Description: Convenience API for alarm dispatcher
  This package contains C helper API for using alarm daemon.
 
 Package: libalarm-dev
 Architecture: any
 Depends: libalarm0
+Section: libdevel
 Description: Development files for alarm dispatcher
  This package contains C headers for the helper API.
 

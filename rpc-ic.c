@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006 Nokia Corporation
+ * Copyright (C) 2006-2007 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -20,15 +20,14 @@
  */
 
 #include <string.h>
-#include <osso-ic-dbus.h>
 #include <osso-log.h>
+#include <conicconnection.h>
+#include <conicconnectionevent.h>
 #include "rpc-dbus.h"
 #include "rpc-ic.h"
 #include "debug.h"
 
-#define ICD_CONNECTED_SIGNAL "type='signal',interface='" ICD_DBUS_INTERFACE "',path='" ICD_DBUS_PATH "',member='" ICD_STATUS_CHANGED_SIG "',arg2='CONNECTED'"
-
-static DBusHandlerResult _ic_connected(DBusConnection *connection, DBusMessage *message, void *user_data);
+static void _ic_connected(ConIcConnection *connection, ConIcConnectionEvent *event, void *user_data);
 
 typedef struct _ICNotify {
 	ICConnectedNotifyCb cb;
@@ -36,91 +35,40 @@ typedef struct _ICNotify {
 } ICNotify;
 
 static GSList *connection_notifies = NULL;
-static DBusConnection *system_bus = NULL;
+static gpointer con_ic = NULL;
 static GStaticMutex notify_mutex = G_STATIC_MUTEX_INIT;
-
-static gboolean _ic_get_connected_bus(DBusConnection *bus) {
-	DBusMessage *msg = NULL;
-	ENTER_FUNC;
-
-	if (!bus) {
-		LEAVE_FUNC;
-		return FALSE;
-	}
-
-	dbus_uint32_t state = 0;
-	dbus_do_call(bus, &msg, FALSE, ICD_DBUS_SERVICE, ICD_DBUS_PATH,
-			ICD_DBUS_INTERFACE, ICD_GET_STATE_REQ,
-			DBUS_TYPE_INVALID);
-
-	if (msg != NULL) {
-		dbus_message_get_args(msg, NULL, DBUS_TYPE_UINT32, &state,
-				DBUS_TYPE_INVALID);
-		dbus_message_unref(msg);
-	}
-
-	LEAVE_FUNC;
-	return state;
-}
-
-gboolean ic_get_connected(void)
-{
-	DBusConnection *conn;
-	gboolean state;
-	ENTER_FUNC;
-	conn = get_dbus_connection(DBUS_BUS_SYSTEM);
-
-	if (!conn) {
-		DEBUG("No connection.");
-		LEAVE_FUNC;
-		return FALSE;
-	}
-
-	state = _ic_get_connected_bus(conn);
-	dbus_connection_unref(conn);
-
-	DEBUG("Is connection: %d", state);
-	LEAVE_FUNC;
-	return state;
-}
 
 void ic_wait_connection(ICConnectedNotifyCb cb, gpointer user_data)
 {
 	ENTER_FUNC;
-	gboolean connected;
+	ConIcConnection *conn = NULL;
+	ICNotify *notify = g_new0(ICNotify, 1);
 	g_static_mutex_lock(&notify_mutex);
 
-	if (system_bus == NULL) {
-		DEBUG("Adding match %s and filter.", ICD_CONNECTED_SIGNAL);
-		system_bus = get_dbus_connection(DBUS_BUS_SYSTEM);
-		dbus_bus_add_match(system_bus, ICD_CONNECTED_SIGNAL, NULL);
-		dbus_connection_add_filter(system_bus,
-			       	_ic_connected, NULL,
-			       	NULL);
-	}
-	connected = _ic_get_connected_bus(system_bus);
-	if (!connected) {
-		ICNotify *notify = g_new0(ICNotify, 1);
-		notify->cb = cb;
-		notify->user_data = user_data;
-		connection_notifies = g_slist_append(connection_notifies,
-				notify);
+	notify->cb = cb;
+	notify->user_data = user_data;
+	connection_notifies = g_slist_append(connection_notifies,
+			notify);
+
+	if (con_ic == NULL) {
+		conn = con_ic = con_ic_connection_new();
+		g_object_add_weak_pointer(G_OBJECT(con_ic),
+				&con_ic);
+		g_signal_connect(con_ic,
+				"connection-event",
+				G_CALLBACK(_ic_connected),
+				NULL);
+
 	}
 
-	if (connection_notifies == NULL && system_bus != NULL) {
-		DEBUG("No notifies, removing match and filter.");
-		dbus_connection_remove_filter(system_bus, _ic_connected, NULL);
-		dbus_bus_remove_match(system_bus, ICD_CONNECTED_SIGNAL, NULL);
-		dbus_connection_unref(system_bus);
-		system_bus = NULL;
-	} else {
-		DLOG_DEBUG("Waiting for internet connection.");
-	}
 	g_static_mutex_unlock(&notify_mutex);
-	
-	if (connected) {
-		cb(user_data);
+
+	if (conn && con_ic) {
+		g_object_set(con_ic,
+				"automatic-connection-events", TRUE,
+				NULL);
 	}
+	
 	LEAVE_FUNC;
 }
 
@@ -135,48 +83,29 @@ void ic_unwait_connection(ICConnectedNotifyCb cb, gpointer user_data)
 		if (notify->cb == cb &&
 				notify->user_data == user_data) {
 			g_free(notify);
-			connection_notifies = g_slist_delete_link(connection_notifies,
+			connection_notifies = g_slist_delete_link(
+					connection_notifies,
 					iter);
 			break;
 		}
 	}
 
-	if (connection_notifies == NULL && system_bus != NULL) {
-		dbus_connection_remove_filter(system_bus, _ic_connected, NULL);
-		dbus_bus_remove_match(system_bus, ICD_CONNECTED_SIGNAL, NULL);
-		dbus_connection_unref(system_bus);
-		system_bus = NULL;
+	if (connection_notifies == NULL && con_ic != NULL) {
+		g_object_unref(con_ic);
 	}
 	g_static_mutex_unlock(&notify_mutex);
 	LEAVE_FUNC;
 }
 
-static DBusHandlerResult _ic_connected(DBusConnection *connection, DBusMessage *message, void *user_data)
+static void _ic_connected(ConIcConnection *connection, ConIcConnectionEvent *event, void *user_data)
 {
 	(void)connection;
 	(void)user_data;
 
 	ENTER_FUNC;
-	if (dbus_message_is_signal(message, ICD_DBUS_INTERFACE, ICD_STATUS_CHANGED_SIG)) {
+	if (con_ic_connection_event_get_status(event) ==
+			CON_IC_STATUS_CONNECTED) {
 		GSList *notifies;
-		const gchar *name;
-		const gchar *type;
-		const gchar *event;
-
-		DEBUG("%s signal from %d", ICD_STATUS_CHANGED_SIG, ICD_DBUS_INTERFACE);
-
-		dbus_message_get_args(message, NULL,
-				DBUS_TYPE_STRING, &name,
-			       	DBUS_TYPE_STRING, &type,
-			       	DBUS_TYPE_STRING, &event,
-			       	DBUS_TYPE_INVALID);
-
-		DEBUG("Args: %s, %s, %s", name, type, event);
-
-		if (strcmp(event, "CONNECTED") != 0) {
-			LEAVE_FUNC;
-			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-		}
 
 		DLOG_DEBUG("Got connection, no longer waiting.");
 
@@ -185,10 +114,7 @@ static DBusHandlerResult _ic_connected(DBusConnection *connection, DBusMessage *
 		notifies = connection_notifies;
 		connection_notifies = NULL;
 
-		dbus_connection_remove_filter(system_bus, _ic_connected, NULL);
-		dbus_bus_remove_match(system_bus, ICD_CONNECTED_SIGNAL, NULL);
-		dbus_connection_unref(system_bus);
-		system_bus = NULL;
+		g_object_unref(con_ic);
 
 		g_static_mutex_unlock(&notify_mutex);
 
@@ -200,5 +126,4 @@ static DBusHandlerResult _ic_connected(DBusConnection *connection, DBusMessage *
 		}
 	}
 	LEAVE_FUNC;
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }

@@ -1,6 +1,16 @@
 # Makefile for alarmd
-# Copyright (C) 2006 Nokia.  All rights reserved.
+# Copyright (C) 2006-2007 Nokia Corporation.
 # Written by David Weinehall
+#
+# alarmd and libalarm are distributed in the hope that they will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this software; if not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
 VERSION := $(shell head -n1 debian/changelog | sed -e 's/^.*(\([^-]*\)\(-.*\)*).*$$/\1/')
 LIBVER := 0:0:0
@@ -43,10 +53,10 @@ WARNINGS += -Wformat=2
 CFLAGS += -DOSSOLOG_COMPILE
 CFLAGS += $(WARNINGS)
 
-alarmd_CFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso osso-ic mce osso-systemui-dbus --cflags` -DG_MODULE \
-		-DPLUGINDIR=\"$(PLUGINDIR)\" -DDBUS_API_SUBJECT_TO_CHANGE -DPACKAGE=\"$(PACKAGE)\" -DVERSION=\"$(VERSION)\" -DDATADIR=\"$(VARDIR)\"
-# Note, we don't have osso-ic here, as we don't want to link to it.
-alarmd_LDFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso mce osso-systemui-dbus --libs` -export-dynamic
+alarmd_CFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso conic mce osso-systemui-dbus --cflags` -DG_MODULE \
+		-DPLUGINDIR=\"$(PLUGINDIR)\" -DPACKAGE=\"$(PACKAGE)\" -DVERSION=\"$(VERSION)\" -DDATADIR=\"$(VARDIR)\" \
+		-DDBUS_API_SUBJECT_TO_CHANGE
+alarmd_LDFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso conic mce osso-systemui-dbus --libs` -export-dynamic
 
 alarmd_SOURCES := alarmd.c event.c action.c object.c xmlobjectfactory.c \
 		queue.c initialize.c timer-loader.c debug.c rpc-systemui.c \
@@ -68,21 +78,21 @@ alarmd_CUDDIR := $(CUDDIR)
 
 alarmd_DIR := $(BINDIR)
 
-libgtimeout_la_CFLAGS += `pkg-config glib-2.0 dbus-1 --cflags`
-libgtimeout_la_LDFLAGS += `pkg-config glib-2.0 dbus-1 --libs` -module -avoid-version -rpath $(PLUGINDIR)
+libgtimeout_la_CFLAGS += `pkg-config glib-2.0 --cflags`
+libgtimeout_la_LDFLAGS += `pkg-config glib-2.0 --libs` -module -avoid-version -rpath $(PLUGINDIR)
 
 libgtimeout_la_SOURCES := timer-gtimeout.c
 libgtimeout_la_HEADERS := include/timer-interface.h debug.h
 libgtimeout_la_DIR := $(PLUGINDIR)
 
-libretu_la_CFLAGS += `pkg-config glib-2.0 dbus-1 --cflags` -DDBUS_API_SUBJECT_TO_CHANGE
-libretu_la_LDFLAGS += `pkg-config glib-2.0 dbus-1 --libs` -module -avoid-version -rpath $(PLUGINDIR)
+libretu_la_CFLAGS += `pkg-config glib-2.0 --cflags`
+libretu_la_LDFLAGS += `pkg-config glib-2.0 --libs` -module -avoid-version -rpath $(PLUGINDIR)
 
 libretu_la_SOURCES := timer-retu.c rpc-retutime.c
 libretu_la_HEADERS := include/timer-interface.h debug.h rpc-retutime.h
 libretu_la_DIR := $(PLUGINDIR)
 
-libalarm_la_CFLAGS += `pkg-config dbus-1 --cflags`
+libalarm_la_CFLAGS += `pkg-config dbus-1 --cflags` -DDBUS_API_SUBJECT_TO_CHANGE
 libalarm_la_LDFLAGS += `pkg-config dbus-1 --libs` -rpath $(LIBDIR) -version-info $(LIBVER)
 
 libalarm_la_SOURCES := alarm_event.c
@@ -124,7 +134,6 @@ $(PART): $(patsubst %.c, %.lo, ${$(subst .,_,${PART})_SOURCES}) ${$(subst .,_,${
 
 .PHONY: doc
 doc:
-#	@$(DOXYGEN) 2> $(TOPDIR)/doc/warnings > /dev/null
 	$(MAKE) -C doc PACKAGE=$(PACKAGE)	
 
 .PHONY: clean
