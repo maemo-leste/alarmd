@@ -22,7 +22,6 @@
 #include <glib-object.h>
 #include <glib.h>
 #include <dbus/dbus.h>
-#include <osso-log.h>
 
 #include "include/alarm_event.h"
 
@@ -50,6 +49,7 @@ enum properties {
 	PROP_SERVICE,
 	PROP_PATH,
 	PROP_NAME,
+	PROP_ARGS,
 };
 
 enum saved_props {
@@ -57,6 +57,7 @@ enum saved_props {
 	S_SERVICE,
 	S_PATH,
 	S_NAME,
+	S_ARGS,
 	S_COUNT
 };
 
@@ -64,7 +65,8 @@ static const gchar * const saved_properties[S_COUNT] = {
 	"interface",
 	"service",
 	"path",
-	"name"
+	"name",
+	"arguments",
 };
 
 typedef struct _AlarmdActionDbusPrivate AlarmdActionDbusPrivate;
@@ -73,6 +75,7 @@ struct _AlarmdActionDbusPrivate {
 	gchar *service;
 	gchar *path;
 	gchar *name;
+	GValueArray *args;
 };
 
 #define ALARMD_ACTION_DBUS_GET_PRIVATE(obj) \
@@ -151,6 +154,13 @@ static void alarmd_action_dbus_class_init(AlarmdActionDbusClass *klass)
 				"Name of the method/signal.",
 				NULL,
 				G_PARAM_READABLE | G_PARAM_WRITABLE));
+	g_object_class_install_property(gobject_class,
+			PROP_ARGS,
+			g_param_spec_boxed("arguments",
+				"Arguments for the dbus call.",
+				"Array of arguments the dbus call is done with",
+				G_TYPE_VALUE_ARRAY,
+				G_PARAM_READABLE | G_PARAM_WRITABLE));
 	LEAVE_FUNC;
 }
 
@@ -163,6 +173,7 @@ static void alarmd_action_dbus_init(AlarmdActionDbus *action_dbus)
 	priv->service = NULL;
 	priv->path = NULL;
 	priv->name = NULL;
+	priv->args = NULL;
 	LEAVE_FUNC;
 }
 
@@ -199,6 +210,12 @@ static void _alarmd_action_dbus_set_property(GObject *object,
 		}
 		priv->name = g_strdup(g_value_get_string(value));
 		break;
+	case PROP_ARGS:
+		if (priv->args) {
+			g_value_array_free(priv->args);
+		}
+		priv->args = g_value_dup_boxed(value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
 		LEAVE_FUNC;
@@ -229,6 +246,9 @@ static void _alarmd_action_dbus_get_property(GObject *object,
 	case PROP_NAME:
 		g_value_set_string(value, priv->name);
 		break;
+	case PROP_ARGS:
+		g_value_set_boxed(value, priv->args);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
 	}
@@ -252,6 +272,9 @@ static void _alarmd_action_dbus_finalize(GObject *object)
 	if (priv->name != NULL) {
 		g_free(priv->name);
 	}
+	if (priv->args != NULL) {
+		g_value_array_free(priv->args);
+	}
 
 	G_OBJECT_CLASS(g_type_class_peek(g_type_parent(ALARMD_TYPE_ACTION_DBUS)))->finalize(object);
 	LEAVE_FUNC;
@@ -268,11 +291,11 @@ static void _alarmd_action_dbus_do_action(AlarmdActionDialog *action)
 	g_object_get(action, "flags", &flags, NULL);
 	conn = get_dbus_connection(((flags & ALARM_EVENT_SYSTEM) ? DBUS_BUS_SYSTEM : DBUS_BUS_SESSION));
 	if (conn != NULL) {
-		DLOG_DEBUG("Sending DBus message to %s\n", priv->path);
-		dbus_do_call(conn, NULL, (flags & ALARM_EVENT_ACTIVATION), priv->service, priv->path, priv->interface, priv->name, DBUS_TYPE_INVALID);
+		g_debug("Sending DBus message to %s\n", priv->path);
+		dbus_do_call_gvalue(conn, NULL, (flags & ALARM_EVENT_ACTIVATION), priv->service, priv->path, priv->interface, priv->name, priv->args);
 		dbus_connection_unref(conn);
 	} else {
-		DLOG_WARN("Could not get DBus bus for sending message.");
+		g_warning("Could not get DBus bus for sending message.");
 	}
 	alarmd_action_acknowledge(ALARMD_ACTION(action), ACK_NORMAL);
 

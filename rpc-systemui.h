@@ -34,16 +34,35 @@
  **/
 
 /**
+ * SystemuiDialogReason:
+ * @DIALOG_ACK: An alarm dialog was acked normally.
+ * @DIALOG_SNOOZE: An alarm dialog was snoozed.
+ * @DIALOG_POWEROFF: An alarm dialog was acked due to shutdown.
+ * @DIALOG_POWERUP: An powerup dialog was acked for power up.
+ * @DIALOG_POWERDOWN: An powerup dialog was acked for power down.
+ *
+ * An enumeration describing the possible acknowledge reasons for dialogs.
+ **/
+typedef enum {
+	DIALOG_ACK,
+	DIALOG_SNOOZE,
+	DIALOG_POWEROFF,
+	DIALOG_POWERUP,
+	DIALOG_POWERDOWN
+} SystemuiDialogReason;
+
+/**
  * SystemuiAlarmdDialogCallback:
  * @user_data: user data set when the callback was connected.
- * @snoozed: TRUE if the snooze/cancel was pressed.
+ * @reason: The reason for calling the callback, will be one of #SystemuiDialogReason.
  *
  * Defines the callbeck used for replies from systemui-alarm.
  **/
-typedef void (*SystemuiAlarmdDialogCallback)(gpointer user_data, gboolean snoozed);
+typedef void (*SystemuiAlarmdDialogCallback)(gpointer user_data, SystemuiDialogReason reason);
 
 /**
  * systemui_alarm_dialog_queue_append:
+ * @alarm_time: Time of the alarm that should be shown in the dialog.
  * @title: Title of the dialog to be appended to the queue.
  * @message: Message of the dialog to be appended to the queue.
  * @sound: Sound for the dialog to be appended to the queue.
@@ -60,6 +79,7 @@ void systemui_alarm_dialog_queue_append(time_t alarm_time, const gchar *title, c
 
 /**
  * systemui_alarm_dialog_queue_remove:
+ * @alarm_time: As passed to #systemui_alarm_dialog_queue_append.
  * @title: As passed to #systemui_alarm_dialog_queue_append.
  * @message: As passed to #systemui_alarm_dialog_queue_append.
  * @sound: As passed to #systemui_alarm_dialog_queue_append.

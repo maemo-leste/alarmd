@@ -77,7 +77,7 @@ AlarmdQueue *init_queue(const gchar *queue_file, const gchar *next_time_file,
 	if (doc) {
 		root = xmlDocGetRootElement(doc);
 
-		if (strcmp(root->name, "queue") == 0) {
+		if (strcmp((char *) root->name, "queue") == 0) {
 			guint n_params, i;
 			GParameter *param = elements_to_parameters(root,
 					&n_params);
@@ -155,7 +155,7 @@ static void _write_data(AlarmdQueue *queue, struct files_t *files)
 static gboolean _real_write_data(struct files_t *files)
 {
 	ENTER_FUNC;
-	xmlDoc *doc = xmlNewDoc("1.0");
+	xmlDoc *doc = xmlNewDoc((xmlChar *) "1.0");
 	xmlNode *root_node = alarmd_object_to_xml(ALARMD_OBJECT(files->queue));
 	glong *events = NULL;
 	guint n_events = 0;

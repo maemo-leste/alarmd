@@ -44,6 +44,7 @@ enum Types {
 	Y_UINT,
 	Y_UINT64,
 	Y_ULONG,
+	Y_VALARRAY,
 	Y_COUNT
 };
 
@@ -61,6 +62,7 @@ static const char * const type_names[Y_COUNT] = {
 	"uint",
 	"uint64",
 	"ulong",
+	"value_array",
 };
 
 static const GType type_gtypes[Y_COUNT] = {
@@ -76,7 +78,8 @@ static const GType type_gtypes[Y_COUNT] = {
 	G_TYPE_UCHAR,
 	G_TYPE_UINT,
 	G_TYPE_UINT64,
-	G_TYPE_ULONG
+	G_TYPE_ULONG,
+	G_TYPE_BOXED,
 };
 
 #endif /* _XML_COMMON_H_ */

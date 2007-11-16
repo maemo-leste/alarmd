@@ -1,29 +1,134 @@
-alarmd (0.4.92) unstable; urgency=low
+alarmd (0.5.18) unstable; urgency=low
 
-  * Fix trivial leak. Fixes: NB#57867
+  * Make sure snoozed alarms get scheduled first. Fixes: NB#74394
 
- -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 21 May 2007 17:16:05 +0300
+ -- Philippe De Swert <philippe.de-swert@nokia.com>  Fri, 16 Nov 2007 13:20:08 +0200
 
-alarmd (0.4.91) unstable; urgency=low
+alarmd (0.5.17) unstable; urgency=low
 
+  * Fix some potential double frees. Fixes: NB#69718
+  * Check g_shell_parse_argv return value instead of the pointer.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 18 Sep 2007 12:33:34 +0300
+
+alarmd (0.5.16) unstable; urgency=low
+
+  * Add documentation for a couple of symbols.
+  * Don't ignore snooze when postponing events. Fixes: NB#68688
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 10 Sep 2007 15:53:54 +0300
+
+alarmd (0.5.15) unstable; urgency=low
+
+  * Disconnect signal when object is destroyed to prevent crashes.
+    Fixes: NB#68599
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Thu,  6 Sep 2007 14:04:19 +0300
+
+alarmd (0.5.14) unstable; urgency=low
+
+  * Missed to set the depends to alarmd for alarmd-dbg
+
+ -- Ismo Laitinen <ismo.laitinen@nokia.com>  Wed, 15 Aug 2007 12:26:39 +0300
+
+alarmd (0.5.13) unstable; urgency=low
+
+  * Add debug package alarmd-dbg. Fixes: NB:#65720 
+
+ -- Ismo Laitinen <ismo.laitinen@nokia.com>  Wed, 15 Aug 2007 11:47:53 +0300
+
+alarmd (0.5.12) unstable; urgency=low
+
+  * Remove .service file. Fixes: NB#64976
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Fri,  3 Aug 2007 16:15:44 +0300
+
+alarmd (0.5.11) unstable; urgency=low
+
+  * Differentiate real ACK and shutdown-ACK.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 17 Jul 2007 18:05:18 +0300
+
+alarmd (0.5.10) unstable; urgency=low
+
+  * Disable auto start in libalarm. Fixes: NB#61438
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 25 Jun 2007 13:24:10 +0300
+
+alarmd (0.5.9) unstable; urgency=low
+
+  * Use new sb alarm API. Fixes: NB#58741
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 28 May 2007 14:29:23 +0300
+
+alarmd (0.5.8) unstable; urgency=low
+
+  * Handle empty argument array.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 21 May 2007 10:22:54 +0300
+
+alarmd (0.5.7) unstable; urgency=low
+
+  * Fix memory leak.
+  * Add support for DBus arguments in daemon.
+  * Add dbus argument passing to libalarm.
+  * Improve error reporting in alarm_event_add.
+  * Ignore dialog arguments if NO_DIALOG set.
+  * Add service file for scratchbox usage.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 15 May 2007 15:51:53 +0300
+
+alarmd (0.5.6) unstable; urgency=low
+
+  * Make the initscript work without dsmetool. Fixes: NB#55247
   * Minor cleanups.
+  * Use glib logging macros instead of osso-log, thanks to Rob Bradford
+    for the patch.
+  * Cast strings from/to xmlChar * where appropriate, thanks to Rob
+    Bradford for the patch.
 
- -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 23 Apr 2007 13:50:06 +0300
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue,  8 May 2007 10:37:22 +0300
 
-alarmd (0.4.90) unstable; urgency=low
+alarmd (0.5.5) unstable; urgency=low
 
   * Add missing build-dependency to libosso-dev.
-  * Backport changes from trunk.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue,  3 Apr 2007 12:23:03 +0300
+
+alarmd (0.5.4) unstable; urgency=low
+
   * Handle missed alarms properly in acting dead.
-  * Clear alarm from retu on alarmd startup.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  2 Apr 2007 16:23:27 +0300
+
+alarmd (0.5.3) unstable; urgency=low
+
+  * Clear alarm from retu on alarmd startup. Fixes: NB#52444
   * Don't wake up the device from acting dead if the event doesn't have
-    BOOT flag. Fixes: NB#54179
+    BOOT flag. Fixes: NB#53466
   * Use libconic instead of listening directly for osso-ic signals.
   * Timer plugins don't use dbus.
-  * Fix alarm_event_query in libalarm.
-  * Stop using deprecated dbus_message_iter_get_array_len.
 
- -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon, 16 Apr 2007 10:27:00 +0300
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Mon,  2 Apr 2007 14:59:43 +0300
+
+alarmd (0.5.2) unstable; urgency=low
+
+  * Fix alarm_event_query in libalarm.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Wed, 21 Mar 2007 11:38:54 +0200
+
+alarmd (0.5.1) unstable; urgency=low
+
+  * Wait for hildon-desktop, not statusbar.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 20 Mar 2007 15:18:12 +0200
+
+alarmd (0.5.0) unstable; urgency=low
+
+  * Stop using deprecated dbus_message_iter_get_array_len.
+  * Don't use now unneeded DBUS_API_SUBJECT_TO_CHANGE.
+
+ -- Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>  Tue, 13 Mar 2007 18:03:20 +0200
 
 alarmd (0.4.3) unstable; urgency=low
 

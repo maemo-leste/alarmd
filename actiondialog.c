@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006-2007 Nokia Corporation
+ * Copyright (C) 2006 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -28,7 +28,7 @@
 #include "event.h"
 #include "debug.h"
 
-#define STATUSBAR_SERVICE "com.nokia.statusbar"
+#define STATUSBAR_SERVICE "com.nokia.hildon-desktop"
 
 static void alarmd_action_dialog_init(AlarmdActionDialog *action_dialog);
 static void alarmd_action_dialog_class_init(AlarmdActionDialogClass *klass);
@@ -41,13 +41,13 @@ static void _alarmd_action_dialog_get_property(GObject *object,
 		GValue *value,
 		GParamSpec *pspec);
 static void _alarmd_action_dialog_run(AlarmdAction *action, gboolean delayed);
-static void _alarmd_action_dialog_real_run(gpointer action, gboolean snoozed);
+static void _alarmd_action_dialog_real_run(gpointer action, SystemuiDialogReason reason);
 static void _alarmd_action_dialog_delayed_run(gpointer action);
 static void _alarmd_action_dialog_finalize(GObject *object);
 static GSList *_alarmd_action_dialog_get_saved_properties(void);
 static void _alarmd_action_dialog_real_do_action(AlarmdActionDialog *dialog);
-static void _alarmd_action_dialog_snooze_powerup(gpointer user_data, gboolean power_up);
-static void _alarmd_action_dialog_powerup(gpointer user_data, gboolean power_up);
+static void _alarmd_action_dialog_snooze_powerup(gpointer user_data, SystemuiDialogReason reason);
+static void _alarmd_action_dialog_powerup(gpointer user_data, SystemuiDialogReason reason);
 static void _alarmd_action_dialog_connected(gpointer act);
 
 enum properties {
@@ -291,7 +291,7 @@ static void _alarmd_action_dialog_delayed_run(gpointer action)
 	LEAVE_FUNC;
 }
 
-static void _alarmd_action_dialog_real_run(gpointer action, gboolean snoozed)
+static void _alarmd_action_dialog_real_run(gpointer action, SystemuiDialogReason reason)
 {
 	AlarmdActionDialogPrivate *priv = ALARMD_ACTION_DIALOG_GET_PRIVATE(action);
 	gint32 flags;
@@ -299,13 +299,15 @@ static void _alarmd_action_dialog_real_run(gpointer action, gboolean snoozed)
 
 	g_object_get(action, "flags", &flags, NULL);
 
-	if (snoozed) {
+	if (reason == DIALOG_SNOOZE) {
 		if (!(flags & ALARM_EVENT_NO_DIALOG)) {
 			if (systemui_is_acting_dead()) {
 				systemui_powerup_dialog_queue_append(_alarmd_action_dialog_snooze_powerup, action);
 			}
 		}
 		alarmd_action_acknowledge(ALARMD_ACTION(action), ACK_SNOOZE);
+	} else if (reason == DIALOG_POWEROFF) {
+		alarmd_action_acknowledge(ALARMD_ACTION(action), ACK_NORMAL);
 	} else if (flags & ALARM_EVENT_ACTDEAD) {
 		if (!(flags & ALARM_EVENT_NO_DIALOG)) {
 			if (systemui_is_acting_dead()) {
@@ -416,11 +418,11 @@ static void _alarmd_action_dialog_real_do_action(AlarmdActionDialog *dialog)
 	LEAVE_FUNC;
 }
 
-static void _alarmd_action_dialog_powerup(gpointer user_data, gboolean power_up)
+static void _alarmd_action_dialog_powerup(gpointer user_data, SystemuiDialogReason reason)
 {
 	ENTER_FUNC;
 
-	if (power_up) {
+	if (reason == DIALOG_POWERUP) {
 		DBusConnection *system_bus =
 		       	get_dbus_connection(DBUS_BUS_SYSTEM);
 		if (system_bus) {
@@ -433,11 +435,11 @@ static void _alarmd_action_dialog_powerup(gpointer user_data, gboolean power_up)
 	LEAVE_FUNC;
 }
 
-static void _alarmd_action_dialog_snooze_powerup(gpointer user_data, gboolean power_up)
+static void _alarmd_action_dialog_snooze_powerup(gpointer user_data, SystemuiDialogReason reason)
 {
 	ENTER_FUNC;
 
-	if (power_up) {
+	if (reason == DIALOG_POWERUP) {
 		DBusConnection *system_bus =
 		       	get_dbus_connection(DBUS_BUS_SYSTEM);
 		if (system_bus) {

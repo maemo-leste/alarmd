@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006-2007 Nokia Corporation
+ * Copyright (C) 2006 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -22,7 +22,7 @@
 #include <glib/gmain.h>
 #include <glib/gtypes.h>
 #include <time.h>
-#include <osso-log.h>
+#include <glib/gmessages.h>
 #include <string.h>
 #include <glib/gfileutils.h>
 #include "rpc-retutime.h"
@@ -160,7 +160,7 @@ static gboolean retu_set_event(TimerPlugin *plugin, time_t wanted_time, TimerCal
 	event->timer_id = g_timeout_add((wanted_time - time_now) * 1000, _retu_event_fire, event);
 
 	if (event->timer_id == 0) {
-		ULOG_WARN_F("Adding timeout failed.");
+		g_warning("Adding timeout failed.");
 		g_free(event);
 
 		LEAVE_FUNC;
@@ -190,11 +190,11 @@ static gboolean retu_remove_event(TimerPlugin *plugin)
 
 		g_source_remove(event->timer_id);
 
+		plugin->plugin_data = NULL;
+
 		if (event->cancel) {
 			event->cancel(event->cb_data);
 		}
-
-		plugin->plugin_data = NULL;
 
 		g_free(event);
 
@@ -230,11 +230,11 @@ static void retu_plugin_deinit(TimerPlugin *plugin)
 
 		g_source_remove(event->timer_id);
 
+		plugin->plugin_data = NULL;
+
 		if (event->cancel) {
 			event->cancel(event->cb_data);
 		}
-
-		plugin->plugin_data = NULL;
 
 		g_free(event);
 	}

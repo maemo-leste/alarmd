@@ -22,7 +22,6 @@
 #include <glib-object.h>
 #include <glib.h>
 #include <dbus/dbus.h>
-#include <osso-log.h>
 
 #include "include/alarm_event.h"
 
@@ -195,9 +194,8 @@ static void _alarmd_action_exec_do_action(AlarmdActionDialog *action)
 	ENTER_FUNC;
 	
 	if (priv->path) {
-		g_shell_parse_argv(priv->path, &argc, &argv, NULL);
-		if (argv != NULL) {
-			DLOG_DEBUG("Running command %s", priv->path);
+		if (g_shell_parse_argv(priv->path, &argc, &argv, NULL)) {
+			g_debug("Running command %s", priv->path);
 			g_spawn_async(g_get_home_dir(),
 					argv,
 					NULL,
@@ -216,11 +214,11 @@ static void _alarmd_action_exec_do_action(AlarmdActionDialog *action)
 			g_strfreev(argv);
 			argv = NULL;
 		} else {
-			DLOG_ERR("Could not parse command.");
+			g_warning("Could not parse command.");
 			_alarmd_action_exec_finished(0, 0, action);
 		}
 	} else {
-		DLOG_ERR("No command to execute.");
+		g_warning("No command to execute.");
 		_alarmd_action_exec_finished(0, 0, action);
 	}
 
@@ -233,6 +231,9 @@ static void _alarmd_action_exec_finished(GPid pid, gint status, gpointer user_da
 	(void)pid;
 	(void)status;
 
+	if (pid) {
+		g_spawn_close_pid(pid);
+	}
 	alarmd_action_acknowledge(ALARMD_ACTION(user_data), ACK_NORMAL);
 	LEAVE_FUNC;
 }

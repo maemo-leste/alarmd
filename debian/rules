@@ -37,7 +37,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 
-	-$(MAKE) distclean
+	$(MAKE) distclean
 
 	dh_clean 
 
@@ -70,7 +70,7 @@ binary-arch: build install
 	# Install man page symlink to alarmd_set_default_snooze
 	ln -s alarmd_set_default_snooze.3.gz debian/libalarm-dev/usr/share/man/man3/alarmd_get_default_snooze.3.gz
 	dh_link
-	dh_strip --dbg-package=libalarm0
+	dh_strip --dbg-package=libalarm0 --dbg-package=alarmd
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs -V

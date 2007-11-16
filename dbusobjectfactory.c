@@ -21,9 +21,137 @@
 
 #include <dbus/dbus.h>
 #include <glib-object.h>
+#include <string.h>
 #include "dbusobjectfactory.h"
 #include "object.h"
 #include "debug.h"
+
+static void dbus_message_iter_get_gvalue(DBusMessageIter *iter, GValue *gvalue)
+{
+	switch (dbus_message_iter_get_arg_type(iter)) {
+	case DBUS_TYPE_BYTE:
+		{
+			gchar value;
+			g_value_init(gvalue, G_TYPE_CHAR);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_char(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_BOOLEAN:
+		{
+			dbus_bool_t value;
+			g_value_init(gvalue, G_TYPE_BOOLEAN);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_boolean(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_INT16:
+		{
+			dbus_int16_t value;
+			g_value_init(gvalue, G_TYPE_INT);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_int(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_UINT16:
+		{
+			dbus_uint16_t value;
+			g_value_init(gvalue, G_TYPE_UINT);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_uint(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_INT32:
+		{
+			dbus_int32_t value;
+			g_value_init(gvalue, G_TYPE_INT);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_int(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_UINT32:
+		{
+			dbus_uint32_t value;
+			g_value_init(gvalue, G_TYPE_UINT);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_uint(gvalue, value);
+			break;
+		}
+#ifdef DBUS_HAVE_INT64
+	case DBUS_TYPE_INT64:
+		{
+			dbus_int64_t value;
+			g_value_init(gvalue, G_TYPE_INT64);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_int64(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_UINT64:
+		{
+			dbus_uint64_t value;
+			g_value_init(gvalue, G_TYPE_UINT64);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_uint64(gvalue, value);
+			break;
+		}
+#endif
+	case DBUS_TYPE_DOUBLE:
+		{
+			double value;
+			g_value_init(gvalue, G_TYPE_DOUBLE);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_double(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_STRING:
+		{
+			gchar *value = NULL;
+			g_value_init(gvalue, G_TYPE_STRING);
+			dbus_message_iter_get_basic(iter, &value);
+			g_value_set_string(gvalue, value);
+			break;
+		}
+	case DBUS_TYPE_OBJECT_PATH:
+		{
+			GObject *value = dbus_object_factory(iter);
+			g_value_init(gvalue, G_TYPE_OBJECT);
+			g_value_set_object(gvalue, value);
+			if (value) {
+				g_object_unref(value);
+			}
+			break;
+		}
+	case DBUS_TYPE_VARIANT:
+		{
+			DBusMessageIter sub;
+			dbus_message_iter_recurse(iter, &sub);
+			dbus_message_iter_get_gvalue(&sub, gvalue);
+			break;
+		}
+	case DBUS_TYPE_ARRAY:
+		{
+			DBusMessageIter sub;
+			GValueArray *array = g_value_array_new(0);
+			g_value_init(gvalue, G_TYPE_VALUE_ARRAY);
+			dbus_message_iter_recurse(iter, &sub);
+			for (dbus_message_iter_recurse(iter, &sub);
+					dbus_message_iter_get_arg_type(&sub) != DBUS_TYPE_INVALID;
+					dbus_message_iter_next(&sub)) {
+				GValue gval;
+				memset(&gval, 0, sizeof(gval));
+				dbus_message_iter_get_gvalue(&sub,
+						&gval);
+				g_value_array_append(array, &gval);
+				g_value_unset(&gval);
+			}
+			g_value_take_boxed(gvalue, array);
+		}
+		break;
+	default:
+		DEBUG("Unsupported type.");
+		break;
+	}
+}
 
 GObject *dbus_object_factory(DBusMessageIter *iter)
 {
@@ -75,103 +203,7 @@ GObject *dbus_object_factory(DBusMessageIter *iter)
 			DEBUG("Ran out of parameters2.");
 			break;
 		}
-		switch (dbus_message_iter_get_arg_type(iter)) {
-		case DBUS_TYPE_BYTE:
-			{
-				gchar value;
-				g_value_init(&params[i].value, G_TYPE_CHAR);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_char(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_BOOLEAN:
-			{
-				dbus_bool_t value;
-				g_value_init(&params[i].value, G_TYPE_BOOLEAN);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_boolean(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_INT16:
-			{
-				dbus_int16_t value;
-				g_value_init(&params[i].value, G_TYPE_INT);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_int(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_UINT16:
-			{
-				dbus_uint16_t value;
-				g_value_init(&params[i].value, G_TYPE_UINT);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_uint(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_INT32:
-			{
-				dbus_int32_t value;
-				g_value_init(&params[i].value, G_TYPE_INT);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_int(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_UINT32:
-			{
-				dbus_uint32_t value;
-				g_value_init(&params[i].value, G_TYPE_UINT);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_uint(&params[i].value, value);
-				break;
-			}
-#ifdef DBUS_HAVE_INT64
-		case DBUS_TYPE_INT64:
-			{
-				dbus_int64_t value;
-				g_value_init(&params[i].value, G_TYPE_INT64);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_int64(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_UINT64:
-			{
-				dbus_uint64_t value;
-				g_value_init(&params[i].value, G_TYPE_UINT64);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_uint64(&params[i].value, value);
-				break;
-			}
-#endif
-		case DBUS_TYPE_DOUBLE:
-			{
-				double value;
-				g_value_init(&params[i].value, G_TYPE_DOUBLE);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_double(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_STRING:
-			{
-				gchar *value = NULL;
-				g_value_init(&params[i].value, G_TYPE_STRING);
-				dbus_message_iter_get_basic(iter, &value);
-				g_value_set_string(&params[i].value, value);
-				break;
-			}
-		case DBUS_TYPE_OBJECT_PATH:
-			{
-				GObject *value = dbus_object_factory(iter);
-				g_value_init(&params[i].value, G_TYPE_OBJECT);
-				g_value_set_object(&params[i].value, value);
-				if (value) {
-					g_object_unref(value);
-				}
-				break;
-			}
-		default:
-			DEBUG("Unsupported type.");
-			break;
-		}
+		dbus_message_iter_get_gvalue(iter, &params[i].value);
 	}
 
 	if (i == n_params) {

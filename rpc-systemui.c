@@ -56,7 +56,7 @@ struct _SystemuiAlarmdDialog {
 	gpointer user_data;
 	SystemuiAlarmdDialogCallback cb;
 	enum flag flags;
-	gboolean status;
+	SystemuiDialogReason status;
 	guint count;
 	guint timer_id;
 };
@@ -359,8 +359,21 @@ static DBusHandlerResult _dialog_ackd(DBusConnection *connection,
 		system_bus = NULL;
 		g_static_mutex_unlock(&queue_mutex);
 
-		dlg->status = (retval == ALARM_DIALOG_RESPONSE_SNOOZE
-			|| retval == ALARM_DIALOG_RESPONSE_POWERUP);
+		switch (retval) {
+			case ALARM_DIALOG_RESPONSE_SNOOZE:
+				dlg->status = DIALOG_SNOOZE;
+				break;
+			case ALARM_DIALOG_RESPONSE_POWERUP:
+				dlg->status = DIALOG_POWERUP;
+				break;
+			case ALARM_DIALOG_RESPONSE_POWERDOWN:
+				dlg->status = DIALOG_POWERDOWN;
+				break;
+			case ALARM_DIALOG_RESPONSE_DISMISS:
+			default:
+				dlg->status = DIALOG_ACK;
+				break;
+		}
 		if (dlg->timer_id) {
 			g_source_remove(dlg->timer_id);
 			dlg->timer_id = 0;
@@ -434,7 +447,7 @@ void systemui_ack_all_dialogs(void)
 			g_source_remove(dlg->timer_id);
 			dlg->timer_id = 0;
 		}
-		dlg->cb(dlg->user_data, FALSE);
+		dlg->cb(dlg->user_data, DIALOG_POWEROFF);
 		g_free(dlg);
 
 		my_list = g_slist_delete_link(my_list, my_list);

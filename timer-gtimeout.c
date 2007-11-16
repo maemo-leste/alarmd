@@ -23,7 +23,7 @@
 #include <glib/gtypes.h>
 #include <time.h>
 #include <stdio.h>
-#include <osso-log.h>
+#include <glib/gmessages.h>
 #include "include/timer-interface.h"
 #include "debug.h"
 
@@ -131,7 +131,7 @@ static gboolean gtimeout_set_event(TimerPlugin *plugin, time_t wanted_time, Time
 	event->timer_id = g_timeout_add((wanted_time - time_now) * 1000, _gtimeout_event_fire, event);
 
 	if (event->timer_id == 0) {
-		ULOG_WARN_F("Adding timeout failed.");
+		g_warning("Adding timeout failed.");
 		g_free(event);
 
 		LEAVE_FUNC;
@@ -159,11 +159,11 @@ static gboolean gtimeout_remove_event(TimerPlugin *plugin)
 
 		g_source_remove(event->timer_id);
 
+		plugin->plugin_data = NULL;
+
 		if (event->cancel) {
 			event->cancel(event->cb_data);
 		}
-
-		plugin->plugin_data = NULL;
 
 		g_free(event);
 

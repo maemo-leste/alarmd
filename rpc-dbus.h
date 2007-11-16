@@ -23,6 +23,7 @@
 #define _RPC_DBUS_H_
 
 #include <glib/gtypes.h>
+#include <glib-object.h>
 #include <libosso.h>
 #include <dbus/dbus.h>
 
@@ -60,6 +61,21 @@ typedef void (*DBusNameNotifyCb)(gpointer user_data);
 void dbus_do_call(DBusConnection *bus, DBusMessage **reply, gboolean activation, const gchar *service, const gchar *path, const gchar *interface, const gchar *name, int first_arg_type, ...);
 
 /**
+ * dbus_do_call_gvalue:
+ * @bus: #DBusConnection to make the method call on.
+ * @reply: Location to store reply or NULL for no replies.
+ * @activation: Should the receiver be started if necessary.
+ * @service: Service to be called.
+ * @path: Path to be called.
+ * @interface: Interface to be called.
+ * @name: Name of the method call.
+ * @args: Arguments for the method call.
+ *
+ * Does a method call over dbus. 
+ **/
+void dbus_do_call_gvalue(DBusConnection *bus, DBusMessage **reply, gboolean activation, const gchar *service, const gchar *path, const gchar *interface, const gchar *name, const GValueArray *args);
+
+/**
  * dbus_watch_name:
  * @name: Name to watch.
  * @cb: Callback to call when name changes owner.
@@ -89,7 +105,7 @@ void dbus_set_osso(osso_context_t *osso);
 
 /**
  * get_dbus_connection:
- * @type DBUS_BUS_SESSION for session bus or DBUS_TYPE_SYSTEM for system bus.
+ * @type: DBUS_BUS_SESSION for session bus or DBUS_TYPE_SYSTEM for system bus.
  *
  * Gets system or session bus from the osso context registered with
  * #dbus_set_osso. #dbus_set_osso _must_ be called before this can be called.
@@ -97,5 +113,15 @@ void dbus_set_osso(osso_context_t *osso);
  * reference, unref with dbus_connection_unref.
  **/
 DBusConnection *get_dbus_connection(DBusBusType type);
+
+/**
+ * dbus_message_iter_append_gvalue:
+ * @iter: Iter into which the gvalue is written to.
+ * @gvalue: The value which will be written.
+ * @as_variator: If true, the value will be written inside a variator container.
+ *
+ * Adds a gvalue to a dbus message.
+ **/
+void dbus_message_iter_append_gvalue(DBusMessageIter *iter, GValue *gvalue, gboolean as_variator);
 
 #endif /* _RPC_DBUS_H_ */

@@ -56,7 +56,8 @@ the user acknowledges the alarm. Optionally the snooze button can be disabled.
 An action may send a DBus method call or signal when it is run. This
 functionality may be combined with dialog and the real dbus call is done only
 after the user has acknowledged the alarm; thus allowing the user to postpone
-the dbus action.
+the dbus action. DBus actions may give an arbitary number of basic DBus
+arguments for the call or signal.
 
 ==== Exec action ====
 
@@ -215,6 +216,15 @@ passed to the function will define the type of the event (see alarm_event_t
 struct). The returned value is a unique identifier for the event (or 0 on
 failure).
 
+==== alarm_event_add_with_dbus_params function ====
+
+Like alarm_event_add, but adds an arbitary amount of arguments that will be
+passed to the DBus call once made. This, of course, only applies to to
+events that use the DBus type action, but it is safe to call this for other
+types too, then the extra arguments have no effect. The extra arguments are
+given in same manner as for dbus_message_append_args, i.e. type of argument -
+pointer to argument data pairs, list ended with DBUS_TYPE_INVALID.
+
 ==== alarm_event_del function ====
 
 The alarm_event_del function removes an event from the event queue. The
@@ -271,8 +281,10 @@ alarm_event_add(&event);
 ==== C API Example 2 ====
 
 An event that will do a dbus call every 10 minutes, if a connection is up,
-indefinitely, starting after 10 minutes.
+indefinitely, starting after 10 minutes. A string "asdf" is passed as
+argument to the call.
 
+const char *argument = "asdf";
 alarm_event_t event = {
 	.alarm_time = time(NULL) + 10 * 60,
 	.recurrence = 10,
@@ -283,7 +295,9 @@ alarm_event_t event = {
 	.dbus_name = "bar",
 	.flags = ALARM_EVENT_NO_DIALOG
 };
-alarm_event_add(&event);
+alarm_event_add_with_dbus_params(&event,
+		DBUS_TYPE_STRING, &argument,
+		DBUS_TYPE_INVALID);
 
 ==== C API Example 3 ====
 
@@ -344,6 +358,8 @@ typedef struct {
 } alarm_event_t;
 
 cookie_t alarm_event_add(alarm_event_t *event);
+cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event,
+		int first_arg_type, ...);
 
 int alarm_event_del(cookie_t event_cookie);
 cookie_t *alarm_event_query(const time_t first, const time_t last,

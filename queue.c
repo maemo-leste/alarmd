@@ -21,7 +21,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include "rpc-systemui.h"
+
 #include "xml-common.h"
 #include "debug.h"
 #include "queue.h"
@@ -472,7 +472,7 @@ static xmlNode *_alarmd_queue_to_xml(AlarmdObject *object)
 	guint n_properties = 0;
 	guint i;
 
-	xmlNode *node = xmlNewNode(NULL, "queue");
+	xmlNode *node = xmlNewNode(NULL, (xmlChar *) "queue");
 	ENTER_FUNC;
 
 	properties = alarmd_object_get_properties(object, &n_properties);
@@ -531,7 +531,7 @@ static xmlNode *_alarmd_queue_to_xml(AlarmdObject *object)
 			g_warning("Unsupported type: %s", g_type_name(G_VALUE_TYPE(&properties[i].value)));
 			break;
 		}
-		added_node = xmlNewChild(node, NULL, "parameter", temp);
+		added_node = xmlNewChild(node, NULL, (xmlChar *) "parameter", (xmlChar *) temp);
 		if (temp) {
 			g_free(temp);
 			temp = NULL;
@@ -543,8 +543,8 @@ static xmlNode *_alarmd_queue_to_xml(AlarmdObject *object)
 			if (G_VALUE_TYPE(&properties[i].value) == type_gtypes[j])
 				break;
 		}
-		xmlNewProp(added_node, "name", properties[i].name);
-		xmlNewProp(added_node, "type", type_names[j]);
+		xmlNewProp(added_node, (xmlChar *) "name", (xmlChar *) properties[i].name);
+		xmlNewProp(added_node, (xmlChar *) "type", (xmlChar *) type_names[j]);
 	}
 
 	alarmd_gparameterv_free(properties, n_properties);
@@ -636,12 +636,15 @@ static void _alarmd_queue_event_changed(AlarmdQueue *queue, AlarmdEvent *event)
 
 	priv->events = g_slist_insert_sorted(priv->events, event, _alarmd_event_compare_func);
 
-	if (priv->queued == NULL) {
+        if (priv->queued == NULL || priv->queued_powerup == NULL) { 
 		_alarmd_queue_event_dequeued(queue, NULL);
-	} else if (priv->queued != ALARMD_EVENT(priv->events->data)) {
-		alarmd_event_dequeue(priv->queued);
+        } if (priv->queued != _alarmd_queue_find_first_event(priv->events, FALSE)) { 
+		alarmd_event_dequeue(priv->queued); 
 	}
-
+	if (priv->queued_powerup != _alarmd_queue_find_first_event(priv->events, TRUE)) {
+                alarmd_event_dequeue(priv->queued_powerup);
+       	}
+		
 	alarmd_object_changed(ALARMD_OBJECT(queue));
 
 	LEAVE_FUNC;

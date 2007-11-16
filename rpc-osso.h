@@ -34,8 +34,6 @@
 
 /**
  * init_osso:
- * @queue: A #AlarmdQueue that will be notified on time changes, and where
- * new events should be added to.
  *
  * Initializes osso connectivity.
  * Returns: The osso_context_t returned by osso_initialize or NULL on failure.

@@ -31,14 +31,12 @@
 #include <unistd.h>		/* close */
 #include <sys/stat.h>		/* open */
 #include <sys/types.h>		/* open */
-#include <osso-log.h>
 
 #include "alarmd.h"
 #include "initialize.h"
 #include "queue.h"
 #include "rpc-osso.h"
 #include "rpc-dbus.h"
-#include "osso-log.h"
 
 #define ALARMD_LOCKFILE		"/var/run/alarmd.pid"
 #define PRG_NAME		"alarmd"
@@ -144,7 +142,7 @@ static void signal_handler(const gint signr)
 		break;
 
 	case SIGTERM:
-		DLOG_DEBUG("Stopping alarmd...");
+		g_debug("Stopping alarmd...");
 		g_main_loop_quit(mainloop);
 		break;
 
@@ -169,8 +167,7 @@ static void daemonize(void)
 	switch (fork()) {
 	case -1:
 		/* Failure */
-		DLOG_CRIT("daemonize: fork failed: %s", strerror(errno));
-		LOG_CLOSE();
+		g_critical("daemonize: fork failed: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 
 	case 0:
@@ -206,21 +203,18 @@ static void daemonize(void)
 	if (access(ALARMD_LOCKFILE, F_OK) == 0) {
 		/* OK */
 	} else if (errno != ENOENT) {
-		DLOG_CRIT("access() failed: %s. Exiting.", g_strerror(errno));
-		LOG_CLOSE();
+		g_critical("access() failed: %s. Exiting.", g_strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
 	/* Single instance */
 	if ((i = open(ALARMD_LOCKFILE, O_RDWR | O_CREAT, 0640)) < 0) {
-		DLOG_CRIT("Cannot open lockfile. Exiting.");
-		LOG_CLOSE();
+		g_critical("Cannot open lockfile. Exiting.");
 		exit(EXIT_FAILURE);
 	}
 
 	if (lockf(i, F_TLOCK, 0) < 0) {
-		DLOG_CRIT("Already running. Exiting.");
-		LOG_CLOSE();
+		g_critical("Already running. Exiting.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -307,8 +301,6 @@ int main(int argc, char **argv)
 		goto EXIT;
 	}
 
-	DLOG_OPEN(PRG_NAME);
-
 	/* Daemonize if requested */
 	if (daemonflag == TRUE)
 		daemonize();
@@ -352,8 +344,7 @@ EXIT:
 		g_main_loop_unref(mainloop);
 
 	/* Log a farewell message and close the log */
-	DLOG_INFO("Exiting...");
-	LOG_CLOSE();
+	g_message("Exiting...");
 
 	return status;
 }

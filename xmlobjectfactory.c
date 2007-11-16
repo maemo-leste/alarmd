@@ -28,6 +28,9 @@
 #include "object.h"
 #include "debug.h"
 
+static void iter_get_value(xmlNode *iter, guint type_id, GValue *value);
+static GValueArray *iter_get_valarray(xmlNode *node);
+
 enum Type {
 	T_ELEMENT,
 	T_ATTRIBUTE,
@@ -38,6 +41,7 @@ enum Type {
 enum Element {
 	E_OBJECT,
 	E_PARAMETER,
+	E_ITEM,
 	E_COUNT
 };
 
@@ -49,7 +53,8 @@ enum Attributes {
 
 static const char * const element_names[E_COUNT] = {
 	"object",
-	"parameter"
+	"parameter",
+	"item"
 };
 
 static const char * const attribute_names[A_COUNT] = {
@@ -102,6 +107,109 @@ static gchar *get_element_text(xmlNode *node) {
 	return NULL;
 }
 
+static GValueArray *iter_get_valarray(xmlNode *node)
+{
+	GValueArray *array = g_value_array_new(0);
+	GValue value;
+	xmlNode *cur_node;
+	xmlAttr *iter;
+	gchar *temp_type = NULL;
+	guint type_id = 0;
+
+	memset(&value, 0, sizeof(value));
+
+	for (cur_node = node->children; cur_node != NULL; cur_node = cur_node->next) {
+		if (cur_node->type == XML_ELEMENT_NODE) {
+			switch (get_id(T_ELEMENT, cur_node->name)) {
+			case E_ITEM:
+				for (iter = cur_node->properties; iter != NULL; iter = iter->next) {
+					switch (get_id(T_ATTRIBUTE, iter->name)) {
+					case A_TYPE:
+						temp_type = get_element_text(iter->children);
+						break;
+					default:
+						g_warning("Invalid attribute.");
+						break;
+					}
+				}
+				type_id = get_id(T_TYPE, (unsigned char *) temp_type);
+				if (type_id == Y_COUNT) {
+					break;
+				}
+
+				iter_get_value(cur_node, type_id, &value);
+				g_value_array_append(array, &value);
+				g_value_unset(&value);
+				break;
+			}
+		}
+	}
+
+	return array;
+}
+
+static void iter_get_value(xmlNode *iter, guint type_id, GValue *value)
+{
+	AlarmdObject *temp_object;
+	gchar *temp_name;
+
+	if (type_gtypes[type_id] != G_TYPE_BOXED) {
+		g_value_init(value, type_gtypes[type_id]);
+	} else if (type_id == Y_VALARRAY) {
+		g_value_init(value, G_TYPE_VALUE_ARRAY);
+	}
+
+	switch (type_id) {
+	case Y_BOOLEAN:
+		temp_name = get_element_text(iter->children);
+		g_value_set_boolean(value, atoi(temp_name));
+		break;
+	case Y_CHAR:
+		temp_name = get_element_text(iter->children);
+		g_value_set_char(value, temp_name ? *temp_name : '\0');
+		break;
+	case Y_INT:
+		temp_name = get_element_text(iter->children);
+		g_value_set_int(value, atoi(temp_name));
+		break;
+	case Y_INT64:
+		temp_name = get_element_text(iter->children);
+		g_value_set_int64(value, atoll(temp_name));
+		break;
+	case Y_LONG:
+		temp_name = get_element_text(iter->children);
+		g_value_set_long(value, atol(temp_name));
+		break;
+	case Y_OBJECT:
+		temp_object = object_factory(iter->children);
+		g_value_set_object(value, temp_object);
+		g_object_unref(temp_object);
+		break;
+	case Y_STRING:
+		g_value_set_string(value, get_element_text(iter->children));
+		break;
+	case Y_UCHAR:
+		temp_name = get_element_text(iter->children);
+		g_value_set_uchar(value, (guchar)(temp_name ? *temp_name : '\0'));
+		break;
+	case Y_UINT:
+		temp_name = get_element_text(iter->children);
+		g_value_set_uint(value, strtoul(temp_name, NULL, 10));
+		break;
+	case Y_UINT64:
+		temp_name = get_element_text(iter->children);
+		g_value_set_uint64(value, strtoull(temp_name, NULL, 10));
+		break;
+	case Y_ULONG:
+		temp_name = get_element_text(iter->children);
+		g_value_set_ulong(value, strtoul(temp_name, NULL, 10));
+		break;
+	case Y_VALARRAY:
+		g_value_take_boxed(value, iter_get_valarray(iter));
+		break;
+	}
+}
+
 GParameter *elements_to_parameters(xmlNode *object_node, guint *n_params)
 {
 	xmlNode *cur_node;
@@ -137,57 +245,13 @@ GParameter *elements_to_parameters(xmlNode *object_node, guint *n_params)
 					temp_name = NULL;
 					break;
 				}
-				type_id = get_id(T_TYPE, temp_type);
+				type_id = get_id(T_TYPE, (unsigned char *) temp_type);
 				if (type_id == T_COUNT) {
 					break;
 				}
 				param = g_new0(GParameter, 1);
-				g_value_init(&param->value, type_gtypes[type_id]);
+				iter_get_value(cur_node, type_id, &param->value);
 				param->name = temp_name;
-				switch (type_id) {
-				case Y_BOOLEAN:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_boolean(&param->value, atoi(temp_name));
-					break;
-				case Y_CHAR:
-					g_value_set_char(&param->value, *get_element_text(cur_node->children));
-					break;
-				case Y_INT:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_int(&param->value, atoi(temp_name));
-					break;
-				case Y_INT64:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_int64(&param->value, atoll(temp_name));
-					break;
-				case Y_LONG:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_long(&param->value, atol(temp_name));
-					break;
-				case Y_OBJECT:
-					temp_object = object_factory(cur_node->children);
-					g_value_set_object(&param->value, temp_object);
-					g_object_unref(temp_object);
-					break;
-				case Y_STRING:
-					g_value_set_string(&param->value, get_element_text(cur_node->children));
-					break;
-				case Y_UCHAR:
-					g_value_set_uchar(&param->value, (guchar)*get_element_text(cur_node->children));
-					break;
-				case Y_UINT:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_uint(&param->value, strtoul(temp_name, NULL, 10));
-					break;
-				case Y_UINT64:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_uint64(&param->value, strtoull(temp_name, NULL, 10));
-					break;
-				case Y_ULONG:
-					temp_name = get_element_text(cur_node->children);
-					g_value_set_ulong(&param->value, strtoul(temp_name, NULL, 10));
-					break;
-				}
 				temp_name = NULL;
 				temp_type = NULL;
 				temp_object = NULL;

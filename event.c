@@ -216,6 +216,7 @@ static void alarmd_event_init(AlarmdEvent *event)
 	priv->action = NULL;
 	priv->cookie = 0;
 	priv->queue = NULL;
+	priv->action_acknowledged_signal = 0;
 	LEAVE_FUNC;
 }
 
@@ -349,7 +350,10 @@ static void _alarmd_event_action_acknowledge(AlarmdEvent *event, guint ack_type,
 	ENTER_FUNC;
 	(void)action;
 
-	g_signal_handler_disconnect(priv->action, priv->action_acknowledged_signal);
+	if (priv->action_acknowledged_signal) {
+		g_signal_handler_disconnect(priv->action, priv->action_acknowledged_signal);
+		priv->action_acknowledged_signal = 0;
+	}
 	if (ack_type == ACK_NORMAL) {
 		g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_ACKNOWLEDGE], 0);
 	} else {
@@ -370,9 +374,9 @@ static void _alarmd_event_real_fire(AlarmdEvent *event, gboolean delayed)
 			if (flags & ALARM_EVENT_POSTPONE_DELAYED) {
 				time_t now = time(NULL);
 
-				if (now > priv->alarm_time + _day_in_seconds)
+				if (now > (time_t)(priv->alarm_time + priv->snooze * 60 + _day_in_seconds))
 				{
-					time_t d = now - priv->alarm_time;
+					time_t d = now - priv->alarm_time - priv->snooze * 60;
 					guint count = d / _day_in_seconds + 1;
 					priv->alarm_time += count *
 					       	_day_in_seconds;
@@ -649,6 +653,10 @@ static void _alarmd_event_finalize(GObject *object)
 	DEBUG("queued: %p", priv->queued);
 	if (priv->queue) {
 		g_object_remove_weak_pointer(G_OBJECT(priv->queue), (gpointer *)&priv->queue);
+	}
+	if (priv->action_acknowledged_signal) {
+		g_signal_handler_disconnect(priv->action, priv->action_acknowledged_signal);
+		priv->action_acknowledged_signal = 0;
 	}
 	if (priv->action) {
 		g_object_set(priv->action, "event", NULL, NULL);

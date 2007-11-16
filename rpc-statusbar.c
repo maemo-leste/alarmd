@@ -32,14 +32,12 @@ static guint users = 0;
 static DBusConnection *conn = NULL;
 static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
-#define STATUSBAR_SERVICE "com.nokia.statusbar"
-#define STATUSBAR_OBJECT_PATH "/com/nokia/statusbar"
-#define STATUSBAR_INTERFACE "com.nokia.statusbar"
-static const gchar * const STATUSBAR_ALARM_NAME = "alarm";
-static const gint STATUSBAR_MAGIC_ON = 1;
-static const gint STATUSBAR_MAGIC_OFF = 0;
-#define STATUSBAR_STARTED_SIGNAL "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='com.nokia.statusbar'"
-static const gchar * const EMPTY = "";
+#define STATUSBAR_SERVICE "com.nokia.osso_stbar_alarm"
+#define STATUSBAR_OBJECT_PATH "/com/nokia/osso/stbar_alarm"
+#define STATUSBAR_INTERFACE "com.nokia.osso_stbar_alarm"
+static const gchar * const STATUSBAR_ALARM_SHOW = "sb_alarm_show";
+static const gchar * const STATUSBAR_ALARM_HIDE = "sb_alarm_hide";
+#define STATUSBAR_STARTED_SIGNAL "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='com.nokia.osso_stbar_alarm'"
 
 static DBusHandlerResult _statusbar_started(DBusConnection *connection, DBusMessage *message, void *user_data);
 static gboolean _display_icon(gpointer user_data);
@@ -50,11 +48,10 @@ void statusbar_show_icon(void)
 	g_static_mutex_lock(&mutex);
 	users++;
 	if (users == 1) {
-		conn = get_dbus_connection(DBUS_BUS_SYSTEM);
+		conn = get_dbus_connection(DBUS_BUS_SESSION);
 		if (conn) {
 			dbus_do_call(conn, NULL, FALSE, STATUSBAR_SERVICE, STATUSBAR_OBJECT_PATH, STATUSBAR_INTERFACE,
-					"event", DBUS_TYPE_STRING, &STATUSBAR_ALARM_NAME, DBUS_TYPE_INT32, &STATUSBAR_MAGIC_ON,
-				       	DBUS_TYPE_INT32, &STATUSBAR_MAGIC_ON, DBUS_TYPE_STRING, &EMPTY, DBUS_TYPE_INVALID);
+					STATUSBAR_ALARM_SHOW, DBUS_TYPE_INVALID);
 			dbus_bus_add_match(conn, STATUSBAR_STARTED_SIGNAL, NULL);
 			dbus_connection_add_filter(conn, _statusbar_started, NULL, NULL);
 		}
@@ -71,8 +68,7 @@ void statusbar_hide_icon(void)
 	if (users == 0) {
 		if (conn) {
 			dbus_do_call(conn, NULL, FALSE, STATUSBAR_SERVICE, STATUSBAR_OBJECT_PATH, STATUSBAR_INTERFACE,
-					"event", DBUS_TYPE_STRING, &STATUSBAR_ALARM_NAME, DBUS_TYPE_INT32, &STATUSBAR_MAGIC_ON,
-				       	DBUS_TYPE_INT32, &STATUSBAR_MAGIC_OFF, DBUS_TYPE_STRING, &EMPTY, DBUS_TYPE_INVALID);
+					STATUSBAR_ALARM_HIDE, DBUS_TYPE_INVALID);
 			dbus_connection_remove_filter(conn, _statusbar_started, NULL);
 			dbus_bus_remove_match(conn, STATUSBAR_STARTED_SIGNAL, NULL);
 			dbus_connection_unref(conn);
@@ -90,8 +86,7 @@ static gboolean _display_icon(gpointer user_data)
 	g_static_mutex_lock(&mutex);
 	if (users > 0) {
 		dbus_do_call(conn, NULL, FALSE, STATUSBAR_SERVICE, STATUSBAR_OBJECT_PATH, STATUSBAR_INTERFACE,
-				"event", DBUS_TYPE_STRING, &STATUSBAR_ALARM_NAME, DBUS_TYPE_INT32, &STATUSBAR_MAGIC_ON,
-				DBUS_TYPE_INT32, &STATUSBAR_MAGIC_ON, DBUS_TYPE_STRING, &EMPTY, DBUS_TYPE_INVALID);
+				STATUSBAR_ALARM_SHOW, DBUS_TYPE_INVALID);
 	}
 	g_static_mutex_unlock(&mutex);
 	LEAVE_FUNC;

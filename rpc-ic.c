@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006-2007 Nokia Corporation
+ * Copyright (C) 2006 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -20,7 +20,7 @@
  */
 
 #include <string.h>
-#include <osso-log.h>
+#include <glib/gmessages.h>
 #include <conicconnection.h>
 #include <conicconnectionevent.h>
 #include "rpc-dbus.h"
@@ -51,22 +51,28 @@ void ic_wait_connection(ICConnectedNotifyCb cb, gpointer user_data)
 			notify);
 
 	if (con_ic == NULL) {
+		g_debug("Creating ConIcConnection...");
 		conn = con_ic = con_ic_connection_new();
+		g_debug("...adding weak pointer...");
 		g_object_add_weak_pointer(G_OBJECT(con_ic),
 				&con_ic);
+		g_debug("...connecting to signal...");
 		g_signal_connect(con_ic,
 				"connection-event",
 				G_CALLBACK(_ic_connected),
 				NULL);
+		g_debug("...done");
 
 	}
 
 	g_static_mutex_unlock(&notify_mutex);
 
 	if (conn && con_ic) {
+		g_debug("Setting automatic-connection-events TRUE...");
 		g_object_set(con_ic,
 				"automatic-connection-events", TRUE,
 				NULL);
+		g_debug("...done");
 	}
 	
 	LEAVE_FUNC;
@@ -91,7 +97,9 @@ void ic_unwait_connection(ICConnectedNotifyCb cb, gpointer user_data)
 	}
 
 	if (connection_notifies == NULL && con_ic != NULL) {
+		g_debug("Unreffing con_ic...");
 		g_object_unref(con_ic);
+		g_debug("...done");
 	}
 	g_static_mutex_unlock(&notify_mutex);
 	LEAVE_FUNC;
@@ -107,7 +115,7 @@ static void _ic_connected(ConIcConnection *connection, ConIcConnectionEvent *eve
 			CON_IC_STATUS_CONNECTED) {
 		GSList *notifies;
 
-		DLOG_DEBUG("Got connection, no longer waiting.");
+		g_debug("Got connection, no longer waiting.");
 
 		g_static_mutex_lock(&notify_mutex);
 

@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006-2007 Nokia Corporation
+ * Copyright (C) 2006 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -58,6 +58,7 @@ enum Properties {
 	RECURRENCE_COUNT,
 	SNOOZE_INT,
 	SNOOZE,
+	ARGS,
 	COUNT
 };
 
@@ -77,6 +78,7 @@ static const char * const property[COUNT] = {
 	"recurr_count",
 	"snooze_interval",
 	"snooze",
+	"arguments",
 };
 
 static alarm_error_t error_code;
@@ -91,8 +93,8 @@ static size_t strstrcount(const char *haystack, const char *needle)
 	}
 
 	for (haystack = strstr(haystack, needle);
-		       	haystack;
-		       	haystack = strstr(haystack + needlelen, needle)) {
+	     haystack;
+	     haystack = strstr(haystack + needlelen, needle)) {
 		retval++;
 	}
 
@@ -120,78 +122,100 @@ static size_t strspncount(const char *haystack, const char *needles)
 {
 	size_t count = 0;
 
-	for (haystack = strpbrk(haystack, needles); haystack; haystack = strpbrk(haystack + 1, needles)) {
+	for (haystack = strpbrk(haystack, needles);
+	     haystack;
+	     haystack = strpbrk(haystack + 1, needles)) {
 		count++;
 	}
 
 	return count;
 }
 
-static DBusMessage *_alarm_event_dbus_call(const char *method, int first_arg_type, ...)
+static DBusMessage *_alarm_event_dbus_call(const char *method,
+					   int first_arg_type,
+					   ...)
 {
-  DBusMessage *msg = NULL;
-  DBusMessage *reply = NULL;
-  DBusConnection *conn = NULL;
-  DBusError error;
-  va_list arg_list;
+	DBusMessage *msg = NULL;
+	DBusMessage *reply = NULL;
+	DBusConnection *conn = NULL;
+	DBusError error;
+	va_list arg_list;
 
-  if (!method) {
-    error_code = ALARMD_ERROR_INTERNAL;
-    return NULL;
-  }
+	if (!method) {
+		error_code = ALARMD_ERROR_INTERNAL;
+		return NULL;
+	}
 
-  conn = dbus_bus_get_private(DBUS_BUS_SESSION, NULL);
+	conn = dbus_bus_get_private(DBUS_BUS_SESSION, NULL);
 
-  if (!conn) {
-    error_code = ALARMD_ERROR_DBUS;
-    return NULL;
-  }
+	if (!conn) {
+		error_code = ALARMD_ERROR_DBUS;
+		return NULL;
+	}
 
-  va_start(arg_list, first_arg_type);
+	va_start(arg_list, first_arg_type);
 
-  /* Create new dbus method call to multimedia. */
-  msg = dbus_message_new_method_call(ALARMD_SERVICE,
-                                     ALARMD_PATH,
-                                     ALARMD_INTERFACE,
-                                     method);
+	/* Create new dbus method call to multimedia. */
+	msg = dbus_message_new_method_call(ALARMD_SERVICE,
+					   ALARMD_PATH,
+					   ALARMD_INTERFACE,
+					   method);
 
-  if (!msg) {
-	  dbus_connection_close(conn);
-	  dbus_connection_unref(conn);
-	  error_code = ALARMD_ERROR_MEMORY;
-	  return NULL;
-  }
+	if (!msg) {
+		dbus_connection_close(conn);
+		dbus_connection_unref(conn);
+		error_code = ALARMD_ERROR_MEMORY;
+		return NULL;
+	}
 
-  /* Append given arguments. */
-  dbus_message_append_args_valist(msg, first_arg_type, arg_list);
-  /* Put the message to dbus queue. */
-  dbus_error_init(&error);
-  reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &error);
-  if (dbus_error_is_set(&error)) {
-	  if (dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
-		  error_code = ALARMD_ERROR_MEMORY;
-	  } else if (dbus_error_has_name(&error, DBUS_ERROR_SERVICE_UNKNOWN) ||
-			  dbus_error_has_name(&error, DBUS_ERROR_NAME_HAS_NO_OWNER)) {
-		  error_code = ALARMD_ERROR_NOT_RUNNING;
-	  } else if (dbus_error_has_name(&error, DBUS_ERROR_NO_REPLY)) {
-		  error_code = ALARMD_ERROR_CONNECTION;
-	  } else {
-		  error_code = ALARMD_ERROR_DBUS;
-	  }
-	  dbus_error_free(&error);
-  }
-  /* Close the connection. */
-  dbus_connection_close(conn);
-  dbus_connection_unref(conn);
-  /* Unref (free) the message. */
-  dbus_message_unref(msg);
+	/* This causes trouble, disable for now. */
+#if 0
+	dbus_message_set_auto_start(msg, TRUE);
+#endif
 
-  va_end(arg_list);
+	/* Append given arguments. */
+	dbus_message_append_args_valist(msg, first_arg_type, arg_list);
+	/* Put the message to dbus queue. */
+	dbus_error_init(&error);
+	reply = dbus_connection_send_with_reply_and_block(conn,
+							  msg,
+							  -1,
+							  &error);
+	if (dbus_error_is_set(&error)) {
+		if (dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
+			error_code = ALARMD_ERROR_MEMORY;
+		} else if (dbus_error_has_name(&error,
+					       DBUS_ERROR_SERVICE_UNKNOWN) ||
+			   dbus_error_has_name(&error,
+					       DBUS_ERROR_NAME_HAS_NO_OWNER)) {
+			error_code = ALARMD_ERROR_NOT_RUNNING;
+		} else if (dbus_error_has_name(&error,
+					       DBUS_ERROR_NO_REPLY)) {
+			error_code = ALARMD_ERROR_CONNECTION;
+		} else {
+			error_code = ALARMD_ERROR_DBUS;
+		}
+		dbus_error_free(&error);
+	}
+	/* Close the connection. */
+	dbus_connection_close(conn);
+	dbus_connection_unref(conn);
+	/* Unref (free) the message. */
+	dbus_message_unref(msg);
 
-  return reply;
+	va_end(arg_list);
+
+	return reply;
 }
 
 cookie_t alarm_event_add(alarm_event_t *event)
+{
+	return alarm_event_add_with_dbus_params(event, DBUS_TYPE_INVALID);
+}
+
+cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event,
+					  int first_arg_type,
+					  ...)
 {
 	DBusConnection *conn;
 	DBusMessage *msg;
@@ -205,24 +229,31 @@ cookie_t alarm_event_add(alarm_event_t *event)
 	const char *action_name = NULL;
 
 	error_code = ALARMD_SUCCESS;
-	
+
 	if (!event) {
 		error_code = ALARMD_ERROR_ARGUMENT;
 		return 0;
 	}
 
 	event_arg_count = ZERO0(event->recurrence) +
-	       	ZERO0(event->recurrence_count) +
+		ZERO0(event->recurrence_count) +
 		ZERO0(event->snooze) + 2;
-	action_arg_count = NULL0(event->title) +
-		NULL0(event->message) +
-		NULL0(event->sound) +
-		NULL0(event->icon) +
+	action_arg_count = 
 		NULL0(event->dbus_interface) +
 		NULL0(event->dbus_service) +
 		NULL0(event->dbus_path) +
 		NULL0(event->dbus_name) +
 		NULL0(event->exec_name) + 1;
+	if (!(event->flags & ALARM_EVENT_NO_DIALOG)) {
+		action_arg_count +=
+			NULL0(event->title) +
+			NULL0(event->message) +
+			NULL0(event->sound) +
+			NULL0(event->icon);
+	}
+	if (first_arg_type != DBUS_TYPE_INVALID && event->dbus_path) {
+		action_arg_count++;
+	}
 
 	if (event->dbus_path == NULL && event->exec_name == NULL) {
 		action_name = "/AlarmdActionDialog";
@@ -240,44 +271,94 @@ cookie_t alarm_event_add(alarm_event_t *event)
 
 	/* Create new dbus method call to multimedia. */
 	msg = dbus_message_new_method_call(ALARMD_SERVICE,
-			ALARMD_PATH,
-			ALARMD_INTERFACE,
-			ALARM_EVENT_ADD);
+					   ALARMD_PATH,
+					   ALARMD_INTERFACE,
+					   ALARM_EVENT_ADD);
 
 	if (msg == NULL) {
 		error_code = ALARMD_ERROR_MEMORY;
 		return 0;
 	}
 
+	/* This causes trouble, disable for now. */
+#if 0
+	dbus_message_set_auto_start(msg, TRUE);
+#endif
+
 	if (!dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &event_name,
-			DBUS_TYPE_UINT32, &event_arg_count,
-			DBUS_TYPE_STRING, &property[TIME],
-			DBUS_TYPE_INT64, &time64,
-			DBUS_TYPE_STRING, &property[ACTION],
-			DBUS_TYPE_OBJECT_PATH, &action_name,
-			DBUS_TYPE_UINT32, &action_arg_count,
-			DBUS_TYPE_STRING, &property[FLAGS],
-			DBUS_TYPE_INT32, &event->flags,
-		      	DBUS_TYPE_INVALID)) {
+				      DBUS_TYPE_UINT32, &event_arg_count,
+				      DBUS_TYPE_STRING, &property[TIME],
+				      DBUS_TYPE_INT64, &time64,
+				      DBUS_TYPE_STRING, &property[ACTION],
+				      DBUS_TYPE_OBJECT_PATH, &action_name,
+				      DBUS_TYPE_UINT32, &action_arg_count,
+				      DBUS_TYPE_STRING, &property[FLAGS],
+				      DBUS_TYPE_INT32, &event->flags,
+				      DBUS_TYPE_INVALID)) {
 		error_code = ALARMD_ERROR_MEMORY;
 		dbus_message_unref(msg);
 		return 0;
 	}
 
 	/* Action arguments. */
-	APPEND_ARG(msg, event->title, DBUS_TYPE_STRING, TITLE);
-	APPEND_ARG(msg, event->message, DBUS_TYPE_STRING, MESSAGE);
-	APPEND_ARG(msg, event->sound, DBUS_TYPE_STRING, SOUND);
-	APPEND_ARG(msg, event->icon, DBUS_TYPE_STRING, ICON);
+	if (!(event->flags & ALARM_EVENT_NO_DIALOG)) {
+		APPEND_ARG(msg, event->title, DBUS_TYPE_STRING, TITLE);
+		APPEND_ARG(msg, event->message, DBUS_TYPE_STRING, MESSAGE);
+		APPEND_ARG(msg, event->sound, DBUS_TYPE_STRING, SOUND);
+		APPEND_ARG(msg, event->icon, DBUS_TYPE_STRING, ICON);
+	}
 	APPEND_ARG(msg, event->dbus_interface, DBUS_TYPE_STRING, INTERFACE);
 	APPEND_ARG(msg, event->dbus_service, DBUS_TYPE_STRING, SERVICE);
 	APPEND_ARG(msg, event->dbus_path, DBUS_TYPE_STRING, PATH);
 	APPEND_ARG(msg, event->dbus_name, DBUS_TYPE_STRING, NAME);
 	APPEND_ARG(msg, event->exec_name, DBUS_TYPE_STRING, PATH);
+	if (first_arg_type != DBUS_TYPE_INVALID && event->dbus_path) {
+		va_list arg_list;
+		DBusMessageIter iter;
+		DBusMessageIter array;
+		char typestring[2] = "\0";
+
+		dbus_message_iter_init_append(msg, &iter);
+		dbus_message_iter_append_basic(&iter,
+					       DBUS_TYPE_STRING,
+					       &property[ARGS]);
+		dbus_message_iter_open_container(&iter,
+						 DBUS_TYPE_ARRAY,
+						 DBUS_TYPE_VARIANT_AS_STRING,
+						 &array);
+		va_start(arg_list, first_arg_type);
+		while (first_arg_type != DBUS_TYPE_INVALID) {
+			DBusMessageIter variant;
+			if (!dbus_type_is_basic(first_arg_type)) {
+				error_code = ALARMD_ERROR_ARGUMENT;
+				va_end(arg_list);
+				dbus_message_unref(msg);
+				return 0;
+			}
+
+			const void *arg = va_arg(arg_list, const void *);
+			typestring[0] = (char)first_arg_type;
+			dbus_message_iter_open_container(&array,
+							 DBUS_TYPE_VARIANT,
+							 typestring,
+							 &variant);
+			dbus_message_iter_append_basic(&variant,
+						       first_arg_type,
+						       arg);
+			dbus_message_iter_close_container(&array,
+							  &variant);
+			first_arg_type = va_arg(arg_list, int);
+		}
+		va_end(arg_list);
+		dbus_message_iter_close_container(&iter,
+						  &array);
+	}
 
 	/* Event arguments. */
-	APPEND_ARG(msg, event->recurrence, DBUS_TYPE_UINT32, RECURRENCE);
-	APPEND_ARG(msg, event->recurrence_count, DBUS_TYPE_INT32, RECURRENCE_COUNT);
+	APPEND_ARG(msg, event->recurrence,
+		   DBUS_TYPE_UINT32, RECURRENCE);
+	APPEND_ARG(msg, event->recurrence_count,
+		   DBUS_TYPE_INT32, RECURRENCE_COUNT);
 	APPEND_ARG(msg, event->snooze, DBUS_TYPE_UINT32, SNOOZE_INT);
 
 	conn = dbus_bus_get_private(DBUS_BUS_SESSION, NULL);
@@ -288,21 +369,46 @@ cookie_t alarm_event_add(alarm_event_t *event)
 		return 0;
 	}
 
-	reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, NULL);
+	dbus_error_init(&error);
+	reply = dbus_connection_send_with_reply_and_block(conn,
+							  msg,
+							  -1,
+							  &error);
+	if (dbus_error_is_set(&error)) {
+		if (dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
+			error_code = ALARMD_ERROR_MEMORY;
+		} else if (dbus_error_has_name(&error,
+					       DBUS_ERROR_SERVICE_UNKNOWN) ||
+			   dbus_error_has_name(&error,
+					       DBUS_ERROR_NAME_HAS_NO_OWNER)) {
+			error_code = ALARMD_ERROR_NOT_RUNNING;
+		} else if (dbus_error_has_name(&error,
+					       DBUS_ERROR_NO_REPLY)) {
+			error_code = ALARMD_ERROR_CONNECTION;
+		} else {
+			error_code = ALARMD_ERROR_DBUS;
+		}
+		dbus_error_free(&error);
+
+		dbus_connection_close(conn);
+		dbus_connection_unref(conn);
+		dbus_message_unref(msg);
+
+		return 0;
+	}
 	dbus_connection_close(conn);
 	dbus_connection_unref(conn);
 	dbus_message_unref(msg);
 
 	if (reply == NULL) {
-		error_code = ALARMD_ERROR_CONNECTION;
+		error_code = ALARMD_ERROR_DBUS;
 		return 0;
 	}
 
-	dbus_error_init(&error);
 	dbus_message_get_args(reply, &error,
-			DBUS_TYPE_INT32, &cookie,
-			DBUS_TYPE_INVALID);
-	
+			      DBUS_TYPE_INT32, &cookie,
+			      DBUS_TYPE_INVALID);
+
 	if (dbus_error_is_set(&error)) {
 		dbus_error_free(&error);
 		dbus_message_unref(reply);
@@ -329,8 +435,8 @@ int alarm_event_del(cookie_t event_cookie)
 	}
 
 	reply = _alarm_event_dbus_call(ALARM_EVENT_DEL,
-			DBUS_TYPE_INT32, &event_cookie,
-			DBUS_TYPE_INVALID);
+				       DBUS_TYPE_INT32, &event_cookie,
+				       DBUS_TYPE_INVALID);
 
 	if (reply == NULL) {
 		return -1;
@@ -338,9 +444,9 @@ int alarm_event_del(cookie_t event_cookie)
 
 	dbus_error_init(&error);
 	dbus_message_get_args(reply, &error,
-			DBUS_TYPE_BOOLEAN, &success,
-			DBUS_TYPE_INVALID);
-	
+			      DBUS_TYPE_BOOLEAN, &success,
+			      DBUS_TYPE_INVALID);
+
 	if (dbus_error_is_set(&error)) {
 		dbus_error_free(&error);
 		dbus_message_unref(reply);
@@ -354,7 +460,7 @@ int alarm_event_del(cookie_t event_cookie)
 }
 
 cookie_t *alarm_event_query(const time_t first, const time_t last,
-		int32_t flag_mask, int32_t flags)
+			    int32_t flag_mask, int32_t flags)
 {
 	DBusMessage *reply;
 	DBusMessageIter iter;
@@ -366,11 +472,11 @@ cookie_t *alarm_event_query(const time_t first, const time_t last,
 	error_code = ALARMD_SUCCESS;
 
 	reply = _alarm_event_dbus_call(ALARM_EVENT_QUERY,
-			DBUS_TYPE_UINT64, &first_64,
-			DBUS_TYPE_UINT64, &last_64,
-			DBUS_TYPE_INT32, &flag_mask,
-			DBUS_TYPE_INT32, &flags,
-			DBUS_TYPE_INVALID);
+				       DBUS_TYPE_UINT64, &first_64,
+				       DBUS_TYPE_UINT64, &last_64,
+				       DBUS_TYPE_INT32, &flag_mask,
+				       DBUS_TYPE_INT32, &flags,
+				       DBUS_TYPE_INVALID);
 
 	if (reply == NULL) {
 		return NULL;
@@ -418,8 +524,8 @@ alarm_event_t *alarm_event_get(cookie_t event_cookie)
 	error_code = ALARMD_SUCCESS;
 
 	reply = _alarm_event_dbus_call(ALARM_EVENT_GET,
-			DBUS_TYPE_INT32, &event_cookie,
-			DBUS_TYPE_INVALID);
+				       DBUS_TYPE_INT32, &event_cookie,
+				       DBUS_TYPE_INVALID);
 
 	if (reply == NULL) {
 		return NULL;
@@ -446,64 +552,71 @@ alarm_event_t *alarm_event_get(cookie_t event_cookie)
 		dbus_message_iter_next(&iter);
 #define dbus_message_iter_get_string(iter, var) \
 		dbus_message_iter_get_basic(iter, &value_string); \
-			var = _strdup(value_string); \
-			value_string = NULL;
+		var = _strdup(value_string); \
+		value_string = NULL;
 		switch (_get_id(name)) {
-			case TITLE:
-				dbus_message_iter_get_string(&iter, retval->title);
-				break;
-			case MESSAGE:
-				dbus_message_iter_get_string(&iter, retval->message);
-				break;
-			case SOUND:
-				dbus_message_iter_get_string(&iter, retval->sound);
-				break;
-			case ICON:
-				dbus_message_iter_get_string(&iter, retval->icon);
-				break;
-			case INTERFACE:
-				dbus_message_iter_get_string(&iter, retval->dbus_interface);
-				break;
-			case PATH:
-				if (is_exec) {
-					dbus_message_iter_get_string(&iter, retval->exec_name);
-				} else {
-					dbus_message_iter_get_string(&iter, retval->dbus_path);
-				}
-				break;
-			case NAME:
-				dbus_message_iter_get_string(&iter, retval->dbus_name);
-				break;
-			case FLAGS:
-				dbus_message_iter_get_basic(&iter, &retval->flags);
-				break;
-			case RECURRENCE:
-				dbus_message_iter_get_basic(&iter, &retval->recurrence);
-				break;
-			case RECURRENCE_COUNT:
-				dbus_message_iter_get_basic(&iter, &retval->recurrence_count);
-				break;
-			case SNOOZE_INT:
-				dbus_message_iter_get_basic(&iter, &retval->snooze);
-				break;
-			case SNOOZE:
-				dbus_message_iter_get_basic(&iter, &retval->snoozed);
-				break;
-			case TIME:
-				dbus_message_iter_get_basic(&iter, &value_u64);
-				retval->alarm_time = (time_t)value_u64;
-				break;
-			case ACTION:
-				dbus_message_iter_get_basic(&iter, &value_string);
-				if (strcmp(value_string, "/AlarmdActionExec") == 0) {
-					is_exec = 1;
-				}
-				dbus_message_iter_next(&iter);
-				dbus_message_iter_get_basic(&iter, &value_u32);
-				arg_count += value_u32;
-				break;
-			default:
-				break;
+		case TITLE:
+			dbus_message_iter_get_string(&iter, retval->title);
+			break;
+		case MESSAGE:
+			dbus_message_iter_get_string(&iter, retval->message);
+			break;
+		case SOUND:
+			dbus_message_iter_get_string(&iter, retval->sound);
+			break;
+		case ICON:
+			dbus_message_iter_get_string(&iter, retval->icon);
+			break;
+		case INTERFACE:
+			dbus_message_iter_get_string(&iter,
+						     retval->dbus_interface);
+			break;
+		case PATH:
+			if (is_exec) {
+				dbus_message_iter_get_string(&iter,
+							     retval->exec_name);
+			} else {
+				dbus_message_iter_get_string(&iter,
+							     retval->dbus_path);
+			}
+			break;
+		case NAME:
+			dbus_message_iter_get_string(&iter,
+						     retval->dbus_name);
+			break;
+		case FLAGS:
+			dbus_message_iter_get_basic(&iter, &retval->flags);
+			break;
+		case RECURRENCE:
+			dbus_message_iter_get_basic(&iter,
+						    &retval->recurrence);
+			break;
+		case RECURRENCE_COUNT:
+			dbus_message_iter_get_basic(&iter,
+						    &retval->recurrence_count);
+			break;
+		case SNOOZE_INT:
+			dbus_message_iter_get_basic(&iter,
+						    &retval->snooze);
+			break;
+		case SNOOZE:
+			dbus_message_iter_get_basic(&iter, &retval->snoozed);
+			break;
+		case TIME:
+			dbus_message_iter_get_basic(&iter, &value_u64);
+			retval->alarm_time = (time_t)value_u64;
+			break;
+		case ACTION:
+			dbus_message_iter_get_basic(&iter, &value_string);
+			if (strcmp(value_string, "/AlarmdActionExec") == 0) {
+				is_exec = 1;
+			}
+			dbus_message_iter_next(&iter);
+			dbus_message_iter_get_basic(&iter, &value_u32);
+			arg_count += value_u32;
+			break;
+		default:
+			break;
 		}
 		if (!dbus_message_iter_next(&iter)) {
 			break;
@@ -633,8 +746,8 @@ char *alarm_unescape_string(const char *string)
 	}
 
 	len = strlen(string)
-	       	- strchrcount(string, '\\')
-	       	+ strstrcount(string, "\\\\");
+		- strchrcount(string, '\\')
+		+ strstrcount(string, "\\\\");
 	retval = malloc(len + 1);
 
 	_alarm_do_unescape(string, retval);
@@ -660,8 +773,9 @@ int alarmd_set_default_snooze(unsigned int snooze)
 		return 0;
 	}
 
-	reply = _alarm_event_dbus_call(ALARMD_SNOOZE_SET, DBUS_TYPE_UINT32,
-		       	&snooze, DBUS_TYPE_INVALID);
+	reply = _alarm_event_dbus_call(ALARMD_SNOOZE_SET,
+				       DBUS_TYPE_UINT32, &snooze,
+				       DBUS_TYPE_INVALID);
 
 	if (reply == NULL) {
 		return 0;
@@ -669,8 +783,8 @@ int alarmd_set_default_snooze(unsigned int snooze)
 
 	dbus_error_init(&error);
 	dbus_message_get_args(reply, &error,
-			DBUS_TYPE_BOOLEAN, &success,
-			DBUS_TYPE_INVALID);
+			      DBUS_TYPE_BOOLEAN, &success,
+			      DBUS_TYPE_INVALID);
 
 	if (dbus_error_is_set(&error)) {
 		dbus_error_free(&error);
@@ -683,7 +797,7 @@ int alarmd_set_default_snooze(unsigned int snooze)
 	if (!success) {
 		error_code = ALARMD_ERROR_INTERNAL;
 	}
-	
+
 	return success;
 }
 
@@ -703,8 +817,8 @@ unsigned int alarmd_get_default_snooze(void)
 
 	dbus_error_init(&error);
 	dbus_message_get_args(reply, &error,
-			DBUS_TYPE_UINT32, &snooze,
-			DBUS_TYPE_INVALID);
+			      DBUS_TYPE_UINT32, &snooze,
+			      DBUS_TYPE_INVALID);
 
 	if (dbus_error_is_set(&error)) {
 		dbus_error_free(&error);
@@ -713,10 +827,10 @@ unsigned int alarmd_get_default_snooze(void)
 		return 0;
 	}
 	dbus_message_unref(reply);
-	
+
 	if (snooze == 0) {
 		error_code = ALARMD_ERROR_INTERNAL;
 	}
-	
+
 	return snooze;
 }

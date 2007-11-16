@@ -21,7 +21,7 @@
 
 #include <dbus/dbus.h>
 #include <libosso.h>
-#include <osso-log.h>
+#include <glib/gmessages.h>
 #include "include/alarm_dbus.h"
 #include "dbusobjectfactory.h"
 #include "rpc-osso.h"
@@ -47,7 +47,7 @@ osso_context_t *init_osso()
 	retval = osso_initialize(PACKAGE, VERSION, FALSE, NULL);
 	
 	if (!retval) {
-		DLOG_ERR("OSSO initialization failed.");
+		g_critical("OSSO initialization failed.");
 	}
 	LEAVE_FUNC;
 
@@ -65,9 +65,11 @@ void set_osso_callbacks(osso_context_t *osso, AlarmdQueue *queue)
 
 	bus = osso_get_dbus_connection(osso);
 	g_object_ref(queue);
+	dbus_connection_set_exit_on_disconnect(bus, TRUE);
 	dbus_connection_add_filter(bus, _dbus_message_in, queue, g_object_unref);
 	bus = osso_get_sys_dbus_connection(osso);
 	g_object_ref(queue);
+	dbus_connection_set_exit_on_disconnect(bus, TRUE);
 	dbus_connection_add_filter(bus, _dbus_message_in, queue, g_object_unref);
 	LEAVE_FUNC;
 }
@@ -100,7 +102,7 @@ static gint _bogus_rpc_f(const gchar *interface, const gchar *method,
 static void _osso_time_changed(gpointer data)
 {
 	ENTER_FUNC;
-	DLOG_DEBUG("Time changed.");
+	g_debug("Time changed.");
 	alarmd_object_time_changed(ALARMD_OBJECT(data));
 	LEAVE_FUNC;
 }
@@ -114,14 +116,14 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 		DBusMessageIter iter;
 		GObject *new_obj;
 		glong retval = 0;
-		DLOG_DEBUG("Incoming %s request", ALARM_EVENT_ADD);
+		g_debug("Incoming %s request", ALARM_EVENT_ADD);
 		dbus_message_iter_init(message, &iter);
 		new_obj = dbus_object_factory(&iter);
 		if (new_obj) {
 			retval = alarmd_queue_add_event(ALARMD_QUEUE(user_data), ALARMD_EVENT(new_obj));
 			g_object_unref(new_obj);
 		} else {
-			DLOG_ERR("DBus parameters were not an object.");
+			g_warning("DBus parameters were not an object.");
 		}
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply =
@@ -131,7 +133,7 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		}
 		if (retval != 0) {
@@ -143,12 +145,12 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 	if (dbus_message_is_method_call(message, ALARMD_INTERFACE, ALARM_EVENT_DEL)) {
 		dbus_int32_t event_id = 0;
 		gboolean status = FALSE;
-		DLOG_DEBUG("Incoming %s request", ALARM_EVENT_DEL);
+		g_debug("Incoming %s request", ALARM_EVENT_DEL);
 		dbus_message_get_args(message, NULL, DBUS_TYPE_INT32, &event_id, DBUS_TYPE_INVALID);
 		if (event_id) {
 			status = alarmd_queue_remove_event(ALARMD_QUEUE(user_data), (glong)event_id);
 		} else {
-			DLOG_WARN("Could not delete: no id supplied.");
+			g_warning("Could not delete: no id supplied.");
 		}
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply = dbus_message_new_method_return(message);
@@ -157,7 +159,7 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		}
 		LEAVE_FUNC;
@@ -170,13 +172,13 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 		gint32 flags = 0;
 		glong *status = FALSE;
 		guint n_params = 0;
-		DLOG_DEBUG("Incoming %s request", ALARM_EVENT_QUERY);
+		g_debug("Incoming %s request", ALARM_EVENT_QUERY);
 		dbus_message_get_args(message, NULL, DBUS_TYPE_UINT64, &start_time, DBUS_TYPE_UINT64, &end_time, DBUS_TYPE_INT32, &flag_mask, DBUS_TYPE_INT32, &flags, DBUS_TYPE_INVALID);
 		DEBUG("start: %lld, end: %lld", start_time, end_time);
 		if (start_time < end_time) {
 			status = alarmd_queue_query_events(ALARMD_QUEUE(user_data), start_time, end_time, flag_mask, flags, &n_params);
 		} else {
-			DLOG_ERR("Could not query, invalid arguments.");
+			g_warning("Could not query, invalid arguments.");
 		}
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply = dbus_message_new_method_return(message);
@@ -185,10 +187,10 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		} else {
-			DLOG_WARN("Events queried but no reply wanted.");
+			g_warning("Events queried but no reply wanted.");
 		}
 			
 		if (status) {
@@ -200,12 +202,12 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 	if (dbus_message_is_method_call(message, ALARMD_INTERFACE, ALARM_EVENT_GET)) {
 		AlarmdEvent *event = NULL;
 		dbus_int32_t event_id = 0;
-		DLOG_DEBUG("Incoming %s request", ALARM_EVENT_GET);
+		g_debug("Incoming %s request", ALARM_EVENT_GET);
 		dbus_message_get_args(message, NULL, DBUS_TYPE_INT32, &event_id, DBUS_TYPE_INVALID);
 		if (event_id) {
 			event = alarmd_queue_get_event(ALARMD_QUEUE(user_data), event_id);
 		} else {
-			DLOG_WARN("Could not get event: no id.");
+			g_warning("Could not get event: no id.");
 		}
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply =
@@ -222,10 +224,10 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		} else {
-			DLOG_WARN("Event queried but no reply wanted.");
+			g_warning("Event queried but no reply wanted.");
 		}
 		LEAVE_FUNC;
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -233,7 +235,7 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 	if (dbus_message_is_method_call(message, ALARMD_INTERFACE, ALARMD_SNOOZE_GET)) {
 		dbus_uint32_t snooze = 0;
 
-		DLOG_DEBUG("Incoming %s request", ALARMD_SNOOZE_GET);
+		g_debug("Incoming %s request", ALARMD_SNOOZE_GET);
 		g_object_get(G_OBJECT(user_data), "snooze", &snooze, NULL);
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply =
@@ -246,10 +248,10 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		} else {
-			DLOG_WARN("Snooze queried but no reply wanted.");
+			g_warning("Snooze queried but no reply wanted.");
 		}
 		LEAVE_FUNC;
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -257,13 +259,13 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 	if (dbus_message_is_method_call(message, ALARMD_INTERFACE, ALARMD_SNOOZE_SET)) {
 		dbus_uint32_t snooze = 0;
 
-		DLOG_DEBUG("Incoming %s request", ALARMD_SNOOZE_SET);
+		g_debug("Incoming %s request", ALARMD_SNOOZE_SET);
 		dbus_message_get_args(message, NULL, DBUS_TYPE_UINT32, &snooze, DBUS_TYPE_INVALID);
 
 		if (snooze) {
 			g_object_set(G_OBJECT(user_data), "snooze", snooze, NULL);
 		} else {
-			DLOG_WARN("Could not set snooze: no time specified.");
+			g_warning("Could not set snooze: no time specified.");
 		}
 		if (!dbus_message_get_no_reply(message)) {
 			DBusMessage *reply = dbus_message_new_method_return(message);
@@ -277,7 +279,7 @@ static DBusHandlerResult _dbus_message_in(DBusConnection *connection,
 				dbus_connection_send(connection, reply, NULL);
 				dbus_message_unref(reply);
 			} else {
-				DLOG_ERR("Could not create reply message.");
+				g_warning("Could not create reply message.");
 			}
 		}
 		LEAVE_FUNC;
@@ -293,7 +295,7 @@ static void _osso_hw_cb(osso_hw_state_t *state, gpointer data)
 	(void)data;
 
 	if (state->shutdown_ind) {
-		DLOG_DEBUG("Shutdown indication -- closing all dialogs.");
+		g_debug("Shutdown indication -- closing all dialogs.");
 		systemui_ack_all_dialogs();
 	}
 

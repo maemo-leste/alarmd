@@ -3,7 +3,7 @@
  *
  * Contact Person: David Weinehall <david.weinehall@nokia.com>
  *
- * Copyright (C) 2006-2007 Nokia Corporation
+ * Copyright (C) 2006 Nokia Corporation
  * alarmd and libalarm are free software; you can redistribute them
  * and/or modify them under the terms of the GNU Lesser General Public
  * License version 2.1 as published by the Free Software Foundation.
@@ -33,7 +33,7 @@
  **/
 
 /**
- * ICDConnectedNotifyCb:
+ * ICConnectedNotifyCb:
  * @user_data: user data set when the signal handler was connected.
  *
  * Callback to be called when a connection is connected.

@@ -84,6 +84,8 @@ typedef enum {
  * @ALARMD_SUCCESS: No error occurred during the operation.
  * @ALARMD_ERROR_DBUS: An error with DBus occurred, probably couldn't get a
  * DBus connection.
+ * @ALARMD_ERROR_CONNECTION: An error occurred while trying to connect to
+ * alarmd.
  * @ALARMD_ERROR_INTERNAL: An libalarm internal error occurred, possibly a
  * version mismatch.
  * @ALARMD_ERROR_MEMORY: Memory exhausted while running operation.
@@ -118,6 +120,7 @@ typedef enum {
  * @dbus_name: The name of the dbus call.
  * @exec_name: The command to be run.
  * @flags: Bitfield describing the event, see #alarmeventflags.
+ * @snoozed: Amount of minutes the event has been snoozed.
  *
  * Describes an alarm event.
  **/
@@ -163,6 +166,23 @@ typedef struct {
  * Returns: Unique identifier for the alarm, or 0 on failure.
  **/
 cookie_t alarm_event_add(alarm_event_t *event);
+
+/**
+ * alarm_event_add_with_dbus_params:
+ * @event: #alarm_event_t struct describing the event to be added.
+ * @first_arg_type: Type of first argument to the DBus actionn.
+ * @...: Type-value pairs of the arguments to the dbus call; end with
+ * DBUS_TYPE_INVALID.
+ *
+ * Just like #alarm_event_add, but with arguments for the DBus call.
+ * The DBus arguments should be passed as pointers, like for
+ * dbus_message_append_args. List should be terminated with
+ * DBUS_TYPE_INVALID. Note, you need dbus/dbus-protocol.h for the type
+ * macros.
+ * Returns: Unique identifier for the alarm, or 0 on failure.
+ **/
+cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event, 
+		int first_arg_type, ...);
 
 /**
  * alarm_event_del:
@@ -247,6 +267,7 @@ char *alarm_unescape_string_noalloc(char *string);
  * alarmd_get_error:
  * 
  * Gets the error code for previous action.
+ * Returns: The error code.
  **/
 alarm_error_t alarmd_get_error(void);
 

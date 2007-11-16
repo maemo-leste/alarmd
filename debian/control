@@ -14,6 +14,15 @@ Description: Generic alarm dispatcher
  This package contains the alarm daemon which provides event
  handling features for applications.
 
+Package: alarmd-dbg
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, alarmd (= ${Source-Version})
+Conflicts: osso-systemui-alarm (<< 0.1.6.3)
+Section: devel
+Description: Generic alarm dispatcher
+ This package contains the alarm daemon with debug symbols which provides event
+ handling features for applications.
+
 Package: libalarm0
 Architecture: any
 Depends: ${shlibs:Depends}

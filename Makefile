@@ -32,12 +32,13 @@ PLUGINDIR := $(DESTDIR)/usr/lib/alarmd
 INCLUDEDIR := $(DESTDIR)/usr/include/alarmd
 BACKUPDIR := $(DESTDIR)/etc/osso-backup/applications
 CUDDIR := $(DESTDIR)/etc/osso-cud-scripts
+SERVICEDIR := $(DESTDIR)/usr/share/dbus-1/services
 
 TOPDIR := $(shell /bin/pwd)
 DOCDIR := $(TOPDIR)/doc
 
 PACKAGE=alarmd
-TARGETS=alarmd libalarm.la libgtimeout.la libretu.la alarmtool apitest
+TARGETS=alarmd libalarm.la libgtimeout.la libretu.la alarmtool apitest dbustest
 
 WARNINGS += -Werror
 WARNINGS += -W -Wall -Wpointer-arith -Wundef -Wcast-align
@@ -54,8 +55,7 @@ CFLAGS += -DOSSOLOG_COMPILE
 CFLAGS += $(WARNINGS)
 
 alarmd_CFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso conic mce osso-systemui-dbus --cflags` -DG_MODULE \
-		-DPLUGINDIR=\"$(PLUGINDIR)\" -DPACKAGE=\"$(PACKAGE)\" -DVERSION=\"$(VERSION)\" -DDATADIR=\"$(VARDIR)\" \
-		-DDBUS_API_SUBJECT_TO_CHANGE
+		-DPLUGINDIR=\"$(PLUGINDIR)\" -DPACKAGE=\"$(PACKAGE)\" -DVERSION=\"$(VERSION)\" -DDATADIR=\"$(VARDIR)\"
 alarmd_LDFLAGS += `pkg-config glib-2.0 gobject-2.0 gmodule-2.0 dbus-1 libxml-2.0 libosso conic mce osso-systemui-dbus --libs` -export-dynamic
 
 alarmd_SOURCES := alarmd.c event.c action.c object.c xmlobjectfactory.c \
@@ -75,6 +75,9 @@ alarmd_BACKUP := alarmd.conf
 alarmd_CUD := alarmd.sh
 alarmd_BACKUPDIR := $(BACKUPDIR)
 alarmd_CUDDIR := $(CUDDIR)
+alarmd_SERVICEDIR := $(SERVICEDIR)
+# Disabled for now
+# alarmd_SERVICE = alarmd.service
 
 alarmd_DIR := $(BINDIR)
 
@@ -92,7 +95,7 @@ libretu_la_SOURCES := timer-retu.c rpc-retutime.c
 libretu_la_HEADERS := include/timer-interface.h debug.h rpc-retutime.h
 libretu_la_DIR := $(PLUGINDIR)
 
-libalarm_la_CFLAGS += `pkg-config dbus-1 --cflags` -DDBUS_API_SUBJECT_TO_CHANGE
+libalarm_la_CFLAGS += `pkg-config dbus-1 --cflags`
 libalarm_la_LDFLAGS += `pkg-config dbus-1 --libs` -rpath $(LIBDIR) -version-info $(LIBVER)
 
 libalarm_la_SOURCES := alarm_event.c
@@ -114,10 +117,15 @@ apitest_DIR := /usr/share/alarmd/tests
 apitest_LDFLAGS += libalarm.la
 apitest_SOURCES := tests/apitest.c
 
+dbustest_CFLAGS += -I`pwd`/include `pkg-config dbus-glib-1 glib-2.0 --cflags`
+dbustest_DIR := /usr/share/alarmd/tests
+dbustest_LDFLAGS += libalarm.la `pkg-config dbus-glib-1 glib-2.0 --libs`
+dbustest_SOURCES := tests/dbustest.c
+
 .PHONY: all
 all: $(patsubst %, %.build, ${TARGETS})
 
-$(PART): $(patsubst %.c, %.lo, ${$(subst .,_,${PART})_SOURCES}) ${$(subst .,_,${PART})_PC} ${$(subst .,_,${PART})_BACKUP} ${$(subst .,_,${PART})_CUD}
+$(PART): $(patsubst %.c, %.lo, ${$(subst .,_,${PART})_SOURCES}) ${$(subst .,_,${PART})_PC} ${$(subst .,_,${PART})_BACKUP} ${$(subst .,_,${PART})_CUD} ${$(subst .,_,${PART})_SERVICE}
 	@echo -n "  Linking..."
 	@$(LIBTOOL) --quiet --mode=link $(CC) $(patsubst %.c, %.lo, ${$(subst .,_,${PART})_SOURCES}) -o $@ ${$(subst .,_,${PART})_LDFLAGS}
 	@echo "done."
@@ -134,6 +142,7 @@ $(PART): $(patsubst %.c, %.lo, ${$(subst .,_,${PART})_SOURCES}) ${$(subst .,_,${
 
 .PHONY: doc
 doc:
+#	@$(DOXYGEN) 2> $(TOPDIR)/doc/warnings > /dev/null
 	$(MAKE) -C doc PACKAGE=$(PACKAGE)	
 
 .PHONY: clean
@@ -157,9 +166,10 @@ install: $(patsubst %, %.install, ${TARGETS})
 	@if [ x != "x${$(subst .,_,$(patsubst %.install,%,$@))_PC}" ]; then $(INSTALL_DIR) ${$(subst .,_,$(patsubst %.install,%,$@))_PCDIR}; $(INSTALL_DATA) ${$(subst .,_,$(patsubst %.install,%,$@))_PC} ${$(subst .,_,$(patsubst %.install,%,$@))_PCDIR}; fi
 	@if [ x != "x${$(subst .,_,$(patsubst %.install,%,$@))_BACKUP}" ]; then $(INSTALL_DIR) ${$(subst .,_,$(patsubst %.install,%,$@))_BACKUPDIR}; $(INSTALL_DATA) ${$(subst .,_,$(patsubst %.install,%,$@))_BACKUP} ${$(subst .,_,$(patsubst %.install,%,$@))_BACKUPDIR}; fi
 	@if [ x != "x${$(subst .,_,$(patsubst %.install,%,$@))_CUD}" ]; then $(INSTALL_DIR) ${$(subst .,_,$(patsubst %.install,%,$@))_CUDDIR}; $(INSTALL) ${$(subst .,_,$(patsubst %.install,%,$@))_CUD} ${$(subst .,_,$(patsubst %.install,%,$@))_CUDDIR}; fi
+	@if [ x != "x${$(subst .,_,$(patsubst %.install,%,$@))_SERVICE}" ]; then $(INSTALL_DIR) ${$(subst .,_,$(patsubst %.install,%,$@))_SERVICEDIR}; $(INSTALL_DATA) ${$(subst .,_,$(patsubst %.install,%,$@))_SERVICE} ${$(subst .,_,$(patsubst %.install,%,$@))_SERVICEDIR}; fi
 	@if [ x != "x${$(subst .,_,$(patsubst %.install,%,$@))_INCLUDES}" ]; then $(INSTALL_DIR) ${$(subst .,_,$(patsubst %.install,%,$@))_INCLUDEDIR}; $(INSTALL_DATA) ${$(subst .,_,$(patsubst %.install,%,$@))_INCLUDES} ${$(subst .,_,$(patsubst %.install,%,$@))_INCLUDEDIR}; fi
 
 %: %.in Makefile debian/changelog
-	@cat $< | sed -e 's!@LIBDIR@!$(LIBDIR)!g; s!@INCLUDEDIR@!$(INCLUDEDIR)!g; s/@VERSION@/$(VERSION)/g; s!@VARDIR@!$(VARDIR)!g;' > $@
+	@cat $< | sed -e 's!@BINDIR@!$(BINDIR)!g; s!@LIBDIR@!$(LIBDIR)!g; s!@INCLUDEDIR@!$(INCLUDEDIR)!g; s/@VERSION@/$(VERSION)/g; s!@VARDIR@!$(VARDIR)!g;' > $@
 %.sh: %.sh.in Makefile debian/changelog
-	@cat $< | sed -e 's!@LIBDIR@!$(LIBDIR)!g; s!@INCLUDEDIR@!$(INCLUDEDIR)!g; s/@VERSION@/$(VERSION)/g; s!@VARDIR@!$(VARDIR)!g;' > $@
+	@cat $< | sed -e 's!@BINDIR@!$(BINDIR)!g; s!@LIBDIR@!$(LIBDIR)!g; s!@INCLUDEDIR@!$(INCLUDEDIR)!g; s/@VERSION@/$(VERSION)/g; s!@VARDIR@!$(VARDIR)!g;' > $@

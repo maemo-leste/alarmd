@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include "object.h"
 #include "xml-common.h"
+#include "rpc-dbus.h"
 #include "debug.h"
 
 static void alarmd_object_class_init(AlarmdObjectClass *klass);
@@ -214,85 +215,105 @@ static void _alarmd_object_real_to_dbus(AlarmdObject *object, DBusMessageIter *i
 	dbus_message_iter_append_basic(iter, DBUS_TYPE_UINT32, &n_props);
 	for (i = 0; i < n_props; i++) {
 		dbus_message_iter_append_basic(iter, DBUS_TYPE_STRING, &properties[i].name);
-		switch (G_VALUE_TYPE(&properties[i].value)) {
-		case G_TYPE_CHAR:
-			{
-				gchar value = g_value_get_char(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_BYTE, &value);
-				break;
-			}
-		case G_TYPE_BOOLEAN:
-			{
-				dbus_bool_t value = g_value_get_boolean(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_BOOLEAN, &value);
-				break;
-			}
-		case G_TYPE_LONG:
-			{
-				dbus_int32_t value = g_value_get_long(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_INT32, &value);
-				break;
-			}
-		case G_TYPE_INT:
-			{
-				dbus_int32_t value = g_value_get_int(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_INT32, &value);
-				break;
-			}
-		case G_TYPE_UINT:
-			{
-				dbus_uint32_t value = g_value_get_uint(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_UINT32, &value);
-				break;
-			}
-#ifdef DBUS_HAVE_INT64
-		case G_TYPE_INT64:
-			{
-				dbus_uint64_t value = g_value_get_int64(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_INT64, &value);
-				break;
-			}
-		case G_TYPE_UINT64:
-			{
-				dbus_uint64_t value = g_value_get_uint64(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_UINT64, &value);
-				break;
-			}
-#endif
-		case G_TYPE_DOUBLE:
-			{
-				double value = g_value_get_double(&properties[i].value);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_DOUBLE, &value);
-				break;
-			}
-		case G_TYPE_STRING:
-			{
-				const gchar *value = g_value_get_string(&properties[i].value);
-				if (value == NULL) {
-					value = "";
-				}
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_STRING, &value);
-				break;
-			}
-		case G_TYPE_OBJECT:
-			{
-				GObject *value = g_value_get_object(&properties[i].value);
-				alarmd_object_to_dbus(ALARMD_OBJECT(value), iter);
-				break;
-			}
-		default:
-			{
-				dbus_int32_t value = -1;
-				DEBUG("Unsupported type for %s", properties[i].name);
-				dbus_message_iter_append_basic(iter, DBUS_TYPE_INT32, &value);
-				break;
-			}
-		}
+		dbus_message_iter_append_gvalue(iter, &properties[i].value, FALSE);
 	}
 
 	alarmd_gparameterv_free(properties, n_props);
 
 	LEAVE_FUNC;
+}
+
+static GSList *_value_array_to_xml_nodes(GValueArray *array)
+{
+	GSList *nodes = NULL;
+	guint i;
+
+	if (!array) {
+		return NULL;
+	}
+
+	for (i = 0; i < array->n_values; i++)
+	{
+		gchar *temp = NULL;
+		GSList *children = NULL;
+		xmlNode *added_node = NULL;
+		guint j;
+
+		if (G_VALUE_TYPE(&array->values[i]) == G_TYPE_VALUE_ARRAY) {
+			temp = NULL;
+			children = _value_array_to_xml_nodes(g_value_get_boxed(&array->values[i]));
+		} else switch (G_VALUE_TYPE(&array->values[i])) {
+		case G_TYPE_BOOLEAN:
+			temp = g_strdup_printf("%d", g_value_get_boolean(&array->values[i]));
+			break;
+		case G_TYPE_CHAR:
+			temp = g_strdup_printf("%c", g_value_get_char(&array->values[i]));
+			break;
+		case G_TYPE_DOUBLE:
+			temp = g_strdup_printf("%f", g_value_get_double(&array->values[i]));
+			break;
+		case G_TYPE_FLOAT:
+			temp = g_strdup_printf("%f", g_value_get_float(&array->values[i]));
+			break;
+		case G_TYPE_INT:
+			temp = g_strdup_printf("%d", g_value_get_int(&array->values[i]));
+			break;
+		case G_TYPE_INT64:
+			temp = g_strdup_printf("%lld", g_value_get_int64(&array->values[i]));
+			break;
+		case G_TYPE_LONG:
+			temp = g_strdup_printf("%ld", g_value_get_long(&array->values[i]));
+			break;
+		case G_TYPE_OBJECT:
+			temp = NULL;
+			if (g_value_get_object(&array->values[i])) {
+				children = g_slist_append(children, alarmd_object_to_xml(ALARMD_OBJECT(g_value_get_object(&array->values[i]))));
+			}
+			break;
+		case G_TYPE_STRING:
+			temp = g_strdup(g_value_get_string(&array->values[i]));
+			break;
+		case G_TYPE_UCHAR:
+			temp = g_strdup_printf("%c", g_value_get_uchar(&array->values[i]));
+			break;
+		case G_TYPE_UINT:
+			temp = g_strdup_printf("%u", g_value_get_uint(&array->values[i]));
+			break;
+		case G_TYPE_UINT64:
+			temp = g_strdup_printf("%llu", g_value_get_uint64(&array->values[i]));
+			break;
+		case G_TYPE_ULONG:
+			temp = g_strdup_printf("%lu", g_value_get_long(&array->values[i]));
+			break;
+		default:
+			temp = NULL;
+			g_warning("Unsupported type: %s", g_type_name(G_VALUE_TYPE(&array->values[i])));
+			break;
+		}
+		added_node = xmlNewNode(NULL, (xmlChar *) "item");
+		xmlNodeAddContent(added_node, (xmlChar *) temp);
+		if (temp) {
+			g_free(temp);
+			temp = NULL;
+		}
+		while (children) {
+			xmlAddChild(added_node, children->data);
+			children = g_slist_delete_link(children, children);
+		}
+		for (j = 0; j < Y_COUNT; j++) {
+			if (type_gtypes[j] != G_TYPE_BOXED) {
+				if (G_VALUE_TYPE(&array->values[i]) == type_gtypes[j])
+					break;
+			} else {
+				if (G_VALUE_TYPE(&array->values[i]) == G_TYPE_VALUE_ARRAY &&
+						j == Y_VALARRAY)
+					break;
+			}
+		}
+		xmlNewProp(added_node, (xmlChar *) "type", (xmlChar *) type_names[j]);
+		nodes = g_slist_append(nodes, added_node);
+	}
+	return nodes;
 }
 
 static xmlNode *_alarmd_object_real_to_xml(AlarmdObject *object)
@@ -303,17 +324,20 @@ static xmlNode *_alarmd_object_real_to_xml(AlarmdObject *object)
 	GParameter *properties = NULL;
 
 	ENTER_FUNC;
-	node = xmlNewNode(NULL, "object");
-	xmlNewProp(node, "type", g_type_name(G_OBJECT_TYPE(object)));
+	node = xmlNewNode(NULL, (xmlChar *) "object");
+	xmlNewProp(node, (xmlChar *) "type", (xmlChar *) g_type_name(G_OBJECT_TYPE(object)));
 
 	properties = alarmd_object_get_properties(object, &n_properties);
 	for (i = 0; i < n_properties; i++) {
 		gchar *temp = NULL;
-		xmlNode *children = NULL;
+		GSList *children = NULL;
 		xmlNode *added_node = NULL;
 		guint j;
 
-		switch (G_VALUE_TYPE(&properties[i].value)) {
+		if (G_VALUE_TYPE(&properties[i].value) == G_TYPE_VALUE_ARRAY) {
+			temp = NULL;
+			children = _value_array_to_xml_nodes(g_value_get_boxed(&properties[i].value));
+		} else switch (G_VALUE_TYPE(&properties[i].value)) {
 		case G_TYPE_BOOLEAN:
 			temp = g_strdup_printf("%d", g_value_get_boolean(&properties[i].value));
 			break;
@@ -338,7 +362,7 @@ static xmlNode *_alarmd_object_real_to_xml(AlarmdObject *object)
 		case G_TYPE_OBJECT:
 			temp = NULL;
 			if (g_value_get_object(&properties[i].value)) {
-				children = alarmd_object_to_xml(ALARMD_OBJECT(g_value_get_object(&properties[i].value)));
+				children = g_slist_append(children, alarmd_object_to_xml(ALARMD_OBJECT(g_value_get_object(&properties[i].value))));
 			}
 			break;
 		case G_TYPE_STRING:
@@ -361,20 +385,27 @@ static xmlNode *_alarmd_object_real_to_xml(AlarmdObject *object)
 			g_warning("Unsupported type: %s", g_type_name(G_VALUE_TYPE(&properties[i].value)));
 			break;
 		}
-		added_node = xmlNewChild(node, NULL, "parameter", temp);
+		added_node = xmlNewChild(node, NULL, (xmlChar *) "parameter", (xmlChar *) temp);
 		if (temp) {
 			g_free(temp);
 			temp = NULL;
 		}
-		if (children) {
-			xmlAddChild(added_node, children);
+		while (children) {
+			xmlAddChild(added_node, children->data);
+			children = g_slist_delete_link(children, children);
 		}
 		for (j = 0; j < Y_COUNT; j++) {
-			if (G_VALUE_TYPE(&properties[i].value) == type_gtypes[j])
-				break;
+			if (type_gtypes[j] != G_TYPE_BOXED) {
+				if (G_VALUE_TYPE(&properties[i].value) == type_gtypes[j])
+					break;
+			} else {
+				if (G_VALUE_TYPE(&properties[i].value) == G_TYPE_VALUE_ARRAY &&
+						j == Y_VALARRAY)
+					break;
+			}
 		}
-		xmlNewProp(added_node, "name", properties[i].name);
-		xmlNewProp(added_node, "type", type_names[j]);
+		xmlNewProp(added_node, (xmlChar *) "name", (xmlChar *) properties[i].name);
+		xmlNewProp(added_node, (xmlChar *) "type", (xmlChar *) type_names[j]);
 	}
 
 	alarmd_gparameterv_free(properties, n_properties);

@@ -25,8 +25,9 @@
 #include <glib/gstrfuncs.h>
 #include <string.h>
 #include <libosso.h>
-#include <osso-log.h>
+#include "object.h"
 #include "rpc-dbus.h"
+#include "debug.h"
 
 #define SERVICE_STARTED_SIGNAL "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',arg0='%s'"
 
@@ -51,7 +52,7 @@ void dbus_do_call(DBusConnection *bus, DBusMessage **reply, gboolean activation,
 	DBusError error;
 
 	if (!bus || !path || !interface) {
-		DLOG_WARN("dbus_do_call called with NULL arguments.");
+		g_warning("dbus_do_call called with NULL arguments.");
 		return;
 	}
 
@@ -71,7 +72,7 @@ void dbus_do_call(DBusConnection *bus, DBusMessage **reply, gboolean activation,
 	}
 
 	if (!msg) {
-		DLOG_WARN("DBus message creation failed.");
+		g_warning("DBus message creation failed.");
 		return;
 	}
 
@@ -88,7 +89,64 @@ void dbus_do_call(DBusConnection *bus, DBusMessage **reply, gboolean activation,
 		dbus_connection_send(bus, msg, NULL);
 	}
 	if (dbus_error_is_set(&error)) {
-		DLOG_WARN("DBus error: %s", error.message);
+		g_warning("DBus error: %s", error.message);
+		dbus_message_unref(msg);
+		dbus_error_free(&error);
+		return;
+	}
+	dbus_message_unref(msg);
+}
+
+void dbus_do_call_gvalue(DBusConnection *bus, DBusMessage **reply, gboolean activation, const gchar *service, const gchar *path, const gchar *interface, const gchar *name, const GValueArray *args)
+{
+	DBusMessage *msg = NULL;
+	DBusError error;
+
+	if (!bus || !path || !interface) {
+		g_warning("dbus_do_call called with NULL arguments.");
+		return;
+	}
+
+	if (service) {
+		msg = dbus_message_new_method_call(service,
+				path,
+				interface,
+				name);
+		if (reply == NULL) {
+			dbus_message_set_no_reply(msg, TRUE);
+		}
+		dbus_message_set_auto_start(msg, activation);
+	} else {
+		msg = dbus_message_new_signal(path,
+				interface,
+				name);
+	}
+
+	if (!msg) {
+		g_warning("DBus message creation failed.");
+		return;
+	}
+
+	if (args) {
+		DBusMessageIter iter;
+		guint i;
+
+		dbus_message_iter_init_append(msg, &iter);
+		
+		for (i = 0; i < args->n_values; i++)
+		{
+			dbus_message_iter_append_gvalue(&iter, &args->values[i], FALSE);
+		}
+	}
+
+	dbus_error_init(&error);
+	if (reply != NULL) {
+		*reply = dbus_connection_send_with_reply_and_block(bus, msg, -1, &error);
+	} else {
+		dbus_connection_send(bus, msg, NULL);
+	}
+	if (dbus_error_is_set(&error)) {
+		g_warning("DBus error: %s", error.message);
 		dbus_message_unref(msg);
 		dbus_error_free(&error);
 		return;
@@ -219,4 +277,103 @@ DBusConnection *get_dbus_connection(DBusBusType type) {
 	}
 	dbus_connection_ref(conn);
 	return conn;
+}
+
+void dbus_message_iter_append_gvalue(DBusMessageIter *iter, GValue *gvalue, gboolean as_variator)
+{
+	DBusMessageIter sub;
+#define append_arg(iter, type, value) \
+	do { DBusMessageIter temp; if (as_variator) dbus_message_iter_open_container((iter), DBUS_TYPE_VARIANT, type ## _AS_STRING, &temp); dbus_message_iter_append_basic(as_variator ? &temp : (iter), type, (value)); if (as_variator) dbus_message_iter_close_container((iter), &temp); } while (0)
+	if (G_VALUE_TYPE(gvalue) == G_TYPE_VALUE_ARRAY) {
+		GValueArray *array = g_value_get_boxed(gvalue);
+		guint i;
+		dbus_message_iter_open_container(iter,
+				DBUS_TYPE_ARRAY,
+				DBUS_TYPE_VARIANT_AS_STRING,
+				&sub);
+		if (array) {
+			for (i = 0; i < array->n_values; i++)
+			{
+				dbus_message_iter_append_gvalue(&sub,
+						&array->values[i],
+						TRUE);
+			}
+		}
+		dbus_message_iter_close_container(iter,
+				&sub);
+	} else switch (G_VALUE_TYPE(gvalue)) {
+	case G_TYPE_CHAR:
+		{
+			gchar value = g_value_get_char(gvalue);
+			append_arg(iter, DBUS_TYPE_BYTE, &value);
+			break;
+		}
+	case G_TYPE_BOOLEAN:
+		{
+			dbus_bool_t value = g_value_get_boolean(gvalue);
+			append_arg(iter, DBUS_TYPE_BOOLEAN, &value);
+			break;
+		}
+	case G_TYPE_LONG:
+		{
+			dbus_int32_t value = g_value_get_long(gvalue);
+			append_arg(iter, DBUS_TYPE_INT32, &value);
+			break;
+		}
+	case G_TYPE_INT:
+		{
+			dbus_int32_t value = g_value_get_int(gvalue);
+			append_arg(iter, DBUS_TYPE_INT32, &value);
+			break;
+		}
+	case G_TYPE_UINT:
+		{
+			dbus_uint32_t value = g_value_get_uint(gvalue);
+			append_arg(iter, DBUS_TYPE_UINT32, &value);
+			break;
+		}
+#ifdef DBUS_HAVE_INT64
+	case G_TYPE_INT64:
+		{
+			dbus_uint64_t value = g_value_get_int64(gvalue);
+			append_arg(iter, DBUS_TYPE_INT64, &value);
+			break;
+		}
+	case G_TYPE_UINT64:
+		{
+			dbus_uint64_t value = g_value_get_uint64(gvalue);
+			append_arg(iter, DBUS_TYPE_UINT64, &value);
+			break;
+		}
+#endif
+	case G_TYPE_DOUBLE:
+		{
+			double value = g_value_get_double(gvalue);
+			append_arg(iter, DBUS_TYPE_DOUBLE, &value);
+			break;
+		}
+	case G_TYPE_STRING:
+		{
+			const gchar *value = g_value_get_string(gvalue);
+			if (value == NULL) {
+				value = "";
+			}
+			append_arg(iter, DBUS_TYPE_STRING, &value);
+			break;
+		}
+	case G_TYPE_OBJECT:
+		{
+			GObject *value = g_value_get_object(gvalue);
+			alarmd_object_to_dbus(ALARMD_OBJECT(value), iter);
+			break;
+		}
+	default:
+		{
+			dbus_int32_t value = -1;
+			DEBUG("Unsupported type.");
+			append_arg(iter, DBUS_TYPE_INT32, &value);
+			break;
+		}
+	}
+#undef append_arg
 }
