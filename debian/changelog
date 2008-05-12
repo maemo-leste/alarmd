@@ -1,3 +1,15 @@
+alarmd (0.5.20) unstable; urgency=low
+
+  * Fix alarmd busylooping. Fixes: NB#83269
+
+ -- Philippe De Swert <philippe.de-swert@nokia.com>  Mon, 12 May 2008 11:51:09 +0300
+
+alarmd (0.5.19) unstable; urgency=low
+ 
+  * coverity fixes
+
+ -- Philippe De Swert <philippe.de-swert@nokia.com>  Wed, 06 Feb 2008 17:56:38 +0200
+
 alarmd (0.5.18) unstable; urgency=low
 
   * Make sure snoozed alarms get scheduled first. Fixes: NB#74394

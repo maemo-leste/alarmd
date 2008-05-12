@@ -86,11 +86,13 @@ static alarm_error_t error_code;
 static size_t strstrcount(const char *haystack, const char *needle)
 {
 	size_t retval = 0;
-	size_t needlelen = strlen(needle);
+	size_t needlelen = 0;
 
 	if (!haystack || !needle) {
 		return 0;
 	}
+
+       	needlelen = strlen(needle);
 
 	for (haystack = strstr(haystack, needle);
 	     haystack;
@@ -165,6 +167,7 @@ static DBusMessage *_alarm_event_dbus_call(const char *method,
 		dbus_connection_close(conn);
 		dbus_connection_unref(conn);
 		error_code = ALARMD_ERROR_MEMORY;
+		va_end(arg_list);
 		return NULL;
 	}
 
@@ -224,7 +227,7 @@ cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event,
 	dbus_int32_t cookie;
 	dbus_uint32_t event_arg_count = 0;
 	dbus_uint32_t action_arg_count = 0;
-	dbus_int64_t time64 = (dbus_int64_t)event->alarm_time;
+	dbus_int64_t time64 = 0;
 	const char *event_name = NULL;
 	const char *action_name = NULL;
 
@@ -284,6 +287,7 @@ cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event,
 #if 0
 	dbus_message_set_auto_start(msg, TRUE);
 #endif
+        time64 = (dbus_int64_t)event->alarm_time;
 
 	if (!dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &event_name,
 				      DBUS_TYPE_UINT32, &event_arg_count,

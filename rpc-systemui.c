@@ -350,6 +350,9 @@ static DBusHandlerResult _dialog_ackd(DBusConnection *connection,
 		g_static_mutex_lock(&queue_mutex);
 		if (dialog_queue) {
 			dlg = (SystemuiAlarmdDialog *)dialog_queue->data;
+			
+			if(dlg == NULL)
+				return DBUS_HANDLER_RESULT_HANDLED;
 
 			DEBUG("Deleting link from queue.");
 			dialog_queue = g_slist_delete_link(dialog_queue, dialog_queue);

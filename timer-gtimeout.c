@@ -68,18 +68,47 @@ gboolean plugin_initialize(TimerPlugin *plugin)
 	return TRUE;
 }
 
+static time_t get_sleeptime(time_t now, time_t wakeup)
+{
+	/* The g_timeout_xxx will eventually use poll()
+	 * to implement the timeout mechanism. Currently
+	 * poll() will return immediately for timeouts
+	 * of INT_MAX msecs -> 24+ days. Thus we need
+	 * to do long waits in several parts.
+	 */
+
+	time_t maxtime = 14 * 24 * 60 * 60;
+
+	if( now >= wakeup ) {
+		return 0;
+	}
+
+	wakeup -= now;
+
+	return (wakeup < maxtime) ? wakeup : maxtime;
+}
+
 static gboolean _gtimeout_event_fire(gpointer event)
 {
 	GTimeoutTimerEvent *ev = (GTimeoutTimerEvent *)event;
+
+	time_t sleeptime = get_sleeptime(time(0), ev->timer_time);
+
 	ENTER_FUNC;
 
-	ev->plugin->plugin_data = NULL;
+	if( sleeptime > 0 ) {
+		/* not done yet, restart timeout */
+		ev->timer_id = g_timeout_add(sleeptime * 1000,
+					     _gtimeout_event_fire, ev);
+	} else {
 
-	if (ev->cb) {
-		ev->cb(ev->cb_data, FALSE);
+		ev->plugin->plugin_data = NULL;
+		if (ev->cb) {
+			ev->cb(ev->cb_data, FALSE);
+		}
+
+		g_free(event);
 	}
-
-	g_free(event);
 
 	LEAVE_FUNC;
 	return FALSE;
@@ -88,6 +117,7 @@ static gboolean _gtimeout_event_fire(gpointer event)
 static gboolean _gtimeout_idle_event_fire(gpointer event) {
 	GTimeoutIdleEvent *ev = event;
 	ENTER_FUNC;
+
 
 	if (ev->cb) {
 		ev->cb(ev->cb_data, ev->delayed);
@@ -103,6 +133,8 @@ static gboolean gtimeout_set_event(TimerPlugin *plugin, time_t wanted_time, Time
 {
 	GTimeoutTimerEvent *event = NULL;
 	time_t time_now = time(NULL);
+	time_t sleeptime = get_sleeptime(time_now, wanted_time);
+
 	ENTER_FUNC;
 
 	DEBUG("wanted time = %lu", wanted_time);
@@ -115,7 +147,7 @@ static gboolean gtimeout_set_event(TimerPlugin *plugin, time_t wanted_time, Time
 
 	plugin->remove_event(plugin);
 
-	if (time_now > wanted_time) {
+	if (time_now >= wanted_time) {
 		GTimeoutIdleEvent *ev = g_new0(GTimeoutIdleEvent, 1);
 		ev->cb = cb;
 		ev->cb_data = user_data;
@@ -128,7 +160,8 @@ static gboolean gtimeout_set_event(TimerPlugin *plugin, time_t wanted_time, Time
 
 	event = g_new0(GTimeoutTimerEvent, 1);
 
-	event->timer_id = g_timeout_add((wanted_time - time_now) * 1000, _gtimeout_event_fire, event);
+	event->timer_id = g_timeout_add(sleeptime * 1000, 
+					_gtimeout_event_fire, event);
 
 	if (event->timer_id == 0) {
 		g_warning("Adding timeout failed.");
@@ -201,9 +234,10 @@ static void gtimeout_time_changed(TimerPlugin *plugin)
 	ENTER_FUNC;
 	if (plugin->plugin_data) {
 		GTimeoutTimerEvent *event = (GTimeoutTimerEvent *)plugin->plugin_data;
-		time_t now = time(NULL);
+		time_t sleeptime = get_sleeptime(time(0), event->timer_time);
+
 		g_source_remove(event->timer_id);
-		if (now > event->timer_time) {
+		if( sleeptime == 0 ) {
 			plugin->plugin_data = NULL;
 
 			if (event->cb) {
@@ -212,8 +246,10 @@ static void gtimeout_time_changed(TimerPlugin *plugin)
 
 			g_free(event);
 		} else {
-			event->timer_id = g_timeout_add((event->timer_time - now) * 1000, _gtimeout_event_fire, event);
-		}
+			event->timer_id = g_timeout_add(sleeptime * 1000, 
+							_gtimeout_event_fire,
+							event);
+		} 
 	}
 	LEAVE_FUNC;
 }

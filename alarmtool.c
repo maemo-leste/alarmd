@@ -522,6 +522,7 @@ static int tool_get(const char *arg)
 		      );
 
 	}
+	free(event);
 	return 0;
 }
 
