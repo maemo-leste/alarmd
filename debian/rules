@@ -1,84 +1,94 @@
 #!/usr/bin/make -f
-# Copyright (C) 2006-2007 Nokia Corporation.
-# Written by David Weinehall
+# -*- mode: sh -*- -----------------------------------------------
+# Debian rules for building alarmd
+# ----------------------------------------------------------------
 #
-# alarmd and libalarm are distributed in the hope that they will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this software; if not, write to the Free
-# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-# 02110-1301 USA
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
 
-CFLAGS = -Wall -g
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
-else
-	CFLAGS += -O2
-endif
-ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -mthumb
-endif
+.PHONY: build clean realclean install configure\
+	binary-indep binary-arch binary
 
-build: build-stamp
+build:: build-stamp
 
-build-stamp:
+binary:: binary-indep binary-arch
+
+realclean:: clean
+
+configure::
+# nothing to do
+
+#----------------------------------------------------------------
+# compiling the software
+
+build-stamp: configure
 	dh_testdir
+	touch $@
 
-	CFLAGS="$(CFLAGS)" $(MAKE)
-
-	touch build-stamp
-
-clean:
+clean::
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
+	$(MAKE) clean
 
-	$(MAKE) distclean
+#----------------------------------------------------------------
+# debian cleanup
+clean::
+	dh_testdir
+	dh_testroot
+	dh_clean
 
-	dh_clean 
+#----------------------------------------------------------------
+# installation
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
 
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	$(MAKE) debian-files
+	$(MAKE) install-alarmd       ROOT=debian/alarmd
+	$(MAKE) install-libalarm     ROOT=debian/libalarm2
+	$(MAKE) install-libalarm-dev ROOT=debian/libalarm-dev
+	$(MAKE) install-libalarm-doc ROOT=debian/libalarm-doc
+	$(MAKE) install-alarmclient  ROOT=debian/alarmclient
 
-binary-indep:
+#----------------------------------------------------------------
+# architecture-independent files -> DEBIAN dirs
 
-binary-arch: build install
+binary-indep: install
+# nothing to do
+
+#----------------------------------------------------------------
+# architecture-dependent files -> DEBIAN dirs
+
+binary-arch: install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_installdocs
-	dh_install --source=debian/tmp
-	dh_installinit -- defaults 99 1
+#	dh_installexamples
+	dh_install -s
 	dh_installman
-	# Install man page symlinks to alarm_event_add
-	for p in alarm_event_del alarm_event_get alarm_event_query alarmd_get_error; do \
-		ln -s alarm_event_add.3.gz debian/libalarm-dev/usr/share/man/man3/$$p.3.gz ; \
-	done
-	# Install man page symlinks to alarm_escape_string
-	for p in alarm_unescape_string alarm_unescape_string_noallog; do \
-		ln -s alarm_escape_string.3.gz debian/libalarm-dev/usr/share/man/man3/$$p.3.gz ; \
-	done
-	# Install man page symlink to alarmd_set_default_snooze
-	ln -s alarmd_set_default_snooze.3.gz debian/libalarm-dev/usr/share/man/man3/alarmd_get_default_snooze.3.gz
+	# Note: clockd must be started before alarmd
+	dh_installinit -- defaults 37 63
 	dh_link
-	dh_strip --dbg-package=libalarm0 --dbg-package=alarmd
+	dh_strip --dbg-package=alarmd\
+	         --dbg-package=alarmclient\
+	         --dbg-package=libalarm2
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V
+	dh_makeshlibs
+# 	dh_pysupport
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
-
-binary: binary-arch binary-indep
-.PHONY: build clean binary-arch binary-indep binary install

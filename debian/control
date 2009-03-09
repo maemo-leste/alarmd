@@ -1,52 +1,77 @@
 Source: alarmd
-Section: utils
+Section: misc
 Priority: optional
-Maintainer: David Weinehall <david.weinehall@nokia.com>
-Uploaders: Santtu Lakkala <ext-santtu.1.lakkala@nokia.com>, Philippe De Swert <philippe.de-swert@nokia.com>
-Build-Depends: debhelper (>= 4.0.0), libtool, libglib2.0-0 (>= 2.6.0), osso-systemui-dbus-dev, libxml2-dev, mce-dev (>= 1.4.0), libconic0-dev, libdbus-1-dev (>= 0.50), libdbus-glib-1-dev, libosso-dev
+Maintainer: Simo Piiroinen <simo.piiroinen@nokia.com>
+Build-Depends: debhelper (>= 4.1.0),
+ libtime-dev,
+ libdbus-1-dev,
+ libdbus-glib-1-dev,
+ libglib2.0-dev,
+ libconic0-dev,
+ osso-systemui-dbus-dev,
+ mce-dev,
+ statusbar-alarm-dev,
+ doxygen
 Standards-Version: 3.7.2
 
 Package: alarmd
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: osso-systemui-alarm (<< 0.1.6.3)
-Description: Generic alarm dispatcher
- This package contains the alarm daemon which provides event
- handling features for applications.
+Depends: ${shlibs:Depends}
+Description: alarm daemon
+ Alarm daemon manages queue of alarm events, executes
+ actions defined in events either automatically or
+ after user input via system ui dialog service.
 
 Package: alarmd-dbg
+Priority: extra
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, alarmd (= ${Source-Version})
-Conflicts: osso-systemui-alarm (<< 0.1.6.3)
-Section: devel
-Description: Generic alarm dispatcher
- This package contains the alarm daemon with debug symbols which provides event
- handling features for applications.
+Depends: alarmd (= ${binary:Version})
+Description: debug symbols for alarmd
+ This package contains debug information for alarmd,
+ useful for debugging tools like gdb.
 
-Package: libalarm0
+Package: alarmclient
 Architecture: any
 Depends: ${shlibs:Depends}
+Description: test tool for alarmd access
+ Command line utility for testing and debugging alarmd features.
+
+Package: alarmclient-dbg
+Priority: extra
+Architecture: any
+Depends: alarmclient (= ${binary:Version})
+Description: debug symbols for alarmclient
+ This package contains debug information for alarmclient,
+ useful for debugging tools like gdb.
+
+Package: libalarm2
 Section: libs
-Description: Convenience API for alarm dispatcher
- This package contains C helper API for using alarm daemon.
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: client library for communicating with alarmd
+ Client side API for adding, removing and querying events
+ in alarmd queue.
+
+Package: libalarm2-dbg
+Section: libdevel
+Priority: extra
+Architecture: any
+Depends: libalarm2 (= ${binary:Version})
+Description: debug symbols for libalarm2
+ This package contains debug information for libalarm2,
+ useful for debugging tools like gdb.
 
 Package: libalarm-dev
-Architecture: any
-Depends: libalarm0
 Section: libdevel
-Description: Development files for alarm dispatcher
- This package contains C headers for the helper API.
-
-Package: alarmtool
 Architecture: any
-Depends: ${shlibs:Depends}
-Description: Simple alarmd command line utility
- This package contains a command line tool for modifying and querying
- the alarm queue.
+Depends: libalarm2 (= ${binary:Version}), ${shlibs:Depends}
+Description: development files for libalarm2
+ Development package for using libalarm2. Contains static
+ library and header files for C and C++ development.
 
-Package: libalarm0-dbg
-Architecture: any
-Depends: ${shlibs:Depends}, libalarm0 (= ${Source-Version})
-Description: Convenience API for alarm dispatcher with debugging symbols
- This package contains C helper API for using alarm daemon with debugging
- symbols.
+Package: libalarm-doc
+Section: doc
+Architecture: all
+Depends: 
+Description: documentation files for libalarm2
+ Doxygen generated API documentation for libalarm2.

@@ -1,350 +1,280 @@
-/**
- * This file is part of alarmd
+/* ========================================================================= *
+ * File: alarmd.c
  *
- * Contact Person: David Weinehall <david.weinehall@nokia.com>
+ * Copyright (C) 2008 Nokia. All rights reserved.
  *
- * Copyright (C) 2006 Nokia Corporation
- * alarmd and libalarm are free software; you can redistribute them
- * and/or modify them under the terms of the GNU Lesser General Public
- * License version 2.1 as published by the Free Software Foundation.
+ * Author: Simo Piiroinen <simo.piiroinen@nokia.com>
  *
- * alarmd and libalarm are distributed in the hope that they will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * -------------------------------------------------------------------------
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA
- */
+ * History:
+ *
+ * 27-May-2008 Simo Piiroinen
+ * - initial version
+ * ========================================================================= */
 
-#include <glib.h>
+#include "alarmd_config.h"
+
+#include "logging.h"
+#include "mainloop.h"
+#include "xutil.h"
+
 #include <glib-object.h>
-#include <errno.h>
-#include <fcntl.h>		/* open */
+
 #include <stdio.h>
-#include <getopt.h>
-#include <signal.h>		/* signal */
-#include <stdlib.h>		/* exit */
-#include <string.h>		/* strerror */
-#include <unistd.h>		/* close */
-#include <sys/stat.h>		/* open */
-#include <sys/types.h>		/* open */
+#include <unistd.h>
+#include <ctype.h>
 
-#include "alarmd.h"
-#include "initialize.h"
-#include "queue.h"
-#include "rpc-osso.h"
-#include "rpc-dbus.h"
+#if ALARMD_CUD_ENABLE || ALARMD_RFS_ENABLE
+#include <dbus/dbus.h>
+#include "alarm_dbus.h"
+#endif
 
-#define ALARMD_LOCKFILE		"/var/run/alarmd.pid"
-#define PRG_NAME		"alarmd"
-
-extern int optind;
-extern char *optarg;
-
-static const gchar *progname;
-
-/*
- * Display usage information
- */
-static void usage(void)
+#if ALARMD_CUD_ENABLE
+static int clear_user_data(void)
 {
-	fprintf(stdout,
-		_("Usage: %s [OPTION]...\n"
-		  "Alarm daemon\n"
-		  "\n"
-		  "  -d, --daemonflag    run alarmd as a daemon\n"
-		  "      --help          display this help and exit\n"
-		  "      --version       output version information and exit\n"
-		  "\n"
-		  "Report bugs to <david.weinehall@nokia.com>\n"),
-		progname);
+  const char *dest  = ALARMD_SERVICE;
+  const char *path  = ALARMD_PATH;
+  const char *iface = ALARMD_INTERFACE;
+  const char *name  = "clear_user_data";
+
+  dbus_int32_t    nak = -1;
+  DBusConnection *con = 0;
+  DBusMessage    *msg = 0;
+  DBusMessage    *rsp = 0;
+  DBusError       err = DBUS_ERROR_INIT;
+
+  if( (con = dbus_bus_get(DBUS_BUS_SYSTEM, &err)) == 0 )
+  {
+    goto cleanup;
+  }
+
+  if( (msg = dbus_message_new_method_call(dest, path, iface, name)) == 0 )
+  {
+    goto cleanup;
+  }
+
+  dbus_message_set_auto_start(msg, FALSE);
+
+  if( !(rsp = dbus_connection_send_with_reply_and_block(con, msg, -1, &err)) )
+  {
+    goto cleanup;
+  }
+
+  dbus_message_get_args(rsp, &err,
+                        DBUS_TYPE_INT32, &nak,
+                        DBUS_TYPE_INVALID);
+
+  cleanup:
+
+  if( rsp != 0 ) dbus_message_unref(rsp);
+  if( msg != 0 ) dbus_message_unref(msg);
+  if( con != 0 ) dbus_connection_unref(con);
+
+  dbus_error_free(&err);
+
+  return (int)nak;
 }
-
-/*
- * Display version information
- */
-static void version(void)
-{
-	fprintf(stdout, _("%s v%s\n%s"),
-		progname,
-		VERSION,
-		_("Written by Santtu Lakkala.\n"
-		  "Contact person: David Weinehall "
-		  "<david.weinehall@nokia.com>\n"
-		  "\n"
-		  "Copyright (C) 2006 Nokia Corporation.\n"
-		  "This is free software; see the source for copying "
-		  "conditions. There is NO\n"
-		  "warranty; not even for MERCHANTABILITY or FITNESS FOR A "
-		  "PARTICULAR PURPOSE.\n"));
-}
-
-/*
- * Initialise locale support
- *
- * @param name The program name to output in usage/version information
- * @return 0 on success, non-zero on failure
- */
-static gint init_locales(const gchar *const name)
-{
-	gint status = 0;
-
-#ifdef ENABLE_NLS
-	setlocale(LC_ALL, "");
-
-	if ((bindtextdomain(name, LOCALEDIR) == 0) && (errno == ENOMEM)) {
-		status = errno;
-		goto EXIT;
-	}
-
-	if ((textdomain(name) == 0) && (errno == ENOMEM)) {
-		status = errno;
-		return 0;
-	}
-
-EXIT:
-	/* In this error-message we don't use _(), since we don't
-	 * know where the locales failed, and we probably won't
-	 * get a reasonable result if we try to use them.
-	 */
-	if (status != 0) {
-		fprintf(stderr,
-			"%s: `%s' failed; %s. Aborting.\n",
-			name, "init_locales", strerror(errno));
-	} else {
-		progname = _(name);
-		errno = 0;
-	}
 #else
-	progname = name;
-#endif /* ENABLE_NLS */
+# define clear_user_data() (-1)
+#endif
 
-	return status;
+#if ALARMD_RFS_ENABLE
+static int restore_factory_settings(void)
+{
+  const char *dest  = ALARMD_SERVICE;
+  const char *path  = ALARMD_PATH;
+  const char *iface = ALARMD_INTERFACE;
+  const char *name  = "restore_factory_settings";
+
+  dbus_int32_t    nak = -1;
+  DBusConnection *con = 0;
+  DBusMessage    *msg = 0;
+  DBusMessage    *rsp = 0;
+  DBusError       err = DBUS_ERROR_INIT;
+
+  if( (con = dbus_bus_get(DBUS_BUS_SYSTEM, &err)) == 0 )
+  {
+    goto cleanup;
+  }
+
+  if( (msg = dbus_message_new_method_call(dest, path, iface, name)) == 0 )
+  {
+    goto cleanup;
+  }
+
+  dbus_message_set_auto_start(msg, FALSE);
+
+  if( !(rsp = dbus_connection_send_with_reply_and_block(con, msg, -1, &err)) )
+  {
+    goto cleanup;
+  }
+
+  dbus_message_get_args(rsp, &err,
+                        DBUS_TYPE_INT32, &nak,
+                        DBUS_TYPE_INVALID);
+
+  cleanup:
+
+  if( rsp != 0 ) dbus_message_unref(rsp);
+  if( msg != 0 ) dbus_message_unref(msg);
+  if( con != 0 ) dbus_connection_unref(con);
+
+  dbus_error_free(&err);
+
+  return (int)nak;
+}
+#else
+# define restore_factory_settings() (-1)
+#endif
+
+static const char *progname = "<unset>";
+
+static void show_usage(void)
+{
+  char **targets = log_get_driver_names();
+  char **levels  = log_get_level_names();
+
+  printf("NAME\n"
+         "  %s %s  --  alarm daemon\n",
+         progname, VERS);
+
+  printf("\n"
+         "SYNOPSIS\n"
+         "  %s [options]\n"
+         "\n"
+         "  or\n"
+         "\n"
+         "  /etc/init.d/alarmd start|stop|restart\n",
+         progname);
+
+  printf("\n"
+         "DESCRIPTION\n"
+         "  Alarm daemon manages queue of alarm events, executes\n"
+         "  actions defined in events either automatically or\n"
+         "  after user input via system ui dialog service.\n"
+         );
+  printf("\n"
+         "OPTIONS\n"
+         "  -h          --  this help output\n"
+         "  -d          --  run as daemon\n"
+         "  -l <target> --  where log is written:\n");
+
+  for( int i = 0; targets[i]; ++i )
+  {
+    printf("                   * %s\n", targets[i]);
+  }
+
+  printf("  -L <level>  --  set verbosity of logging:\n");
+  for( int i = 0; levels[i]; ++i )
+  {
+    printf("                   * %s\n", levels[i]);
+  }
+
+  printf("\n"
+         "EXAMPLES\n"
+         "  /etc/init.d/alarmd stop\n"
+         "  alarmd -lstderr -Ldebug\n"
+         "\n"
+         "    Stop alarmd service and restart with full debug log\n"
+         "    written to stderr\n"
+         );
+
+  printf("\n"
+         "NOTES\n"
+         "  The <target> and <level> names are case insensitive\n");
+
+  printf("\n"
+         "SEE ALSO\n"
+         "  alarmclient\n");
+
+  xfreev(targets);
+  xfreev(levels);
 }
 
-/*
- * Signal handler
- *
- * @param signr Signal type
- */
-static void signal_handler(const gint signr)
+int
+main(int argc, char **argv)
 {
-	switch (signr) {
-	case SIGUSR1:
-		/* we'll probably want some way to communicate with alarmd */
-		break;
+  int log_driver = LOG_TO_SYSLOG;
+  int log_level  = LOG_WARNING;
 
-	case SIGHUP:
-		/* possibly for re-reading configuration? */
-		break;
+  static const char opt_spec[] = "dhl:L:X:";
+  int opt_daemon = 0;
+  int opt;
+  char *s;
 
-	case SIGTERM:
-		g_debug("Stopping alarmd...");
-		g_main_loop_quit(mainloop);
-		break;
+  progname = basename(*argv);
 
-	default:
-		/* should never happen */
-		break;
-	}
-}
+  // libconic uses gobjects
+  g_type_init();
 
-/*
- * Daemonize the program
- */
-static void daemonize(void)
-{
-	gint i = 0;
-	gchar str[10];
+  while( (opt = getopt (argc, argv, opt_spec)) != -1 )
+  {
+    switch( opt )
+    {
+    case 'L':
+      log_level = log_parse_level(optarg);
+      break;
 
-	if (getppid() == 1)
-		return;		/* Already daemonized */
+    case 'l':
+      log_driver = log_parse_driver(optarg);
+      break;
 
-	/* detach from process group */
-	switch (fork()) {
-	case -1:
-		/* Failure */
-		g_critical("daemonize: fork failed: %s", strerror(errno));
-		exit(EXIT_FAILURE);
+    case 'd':
+      opt_daemon = 1;
+      break;
 
-	case 0:
-		/* Child */
-		break;
+    case 'h':
+      show_usage();
+      exit(0);
 
-	default:
-		/* Parent -- exit */
-		exit(EXIT_SUCCESS);
-	}
+    case 'X':
+      if( !strcmp(optarg, "cud") )
+      {
+        exit( clear_user_data() == -1 ? EXIT_FAILURE : EXIT_SUCCESS);
+      }
+      else if( !strcmp(optarg, "rfs") )
+      {
+        exit(restore_factory_settings() == -1 ? EXIT_FAILURE : EXIT_SUCCESS);
+      }
+      else
+      {
+        fprintf(stderr, "Unknwon option: -X%s\n", optarg);
+      }
+      exit(EXIT_FAILURE);
+      break;
 
-	/* Detach TTY */
-	setsid();
+    case '?':
+      if( (s = strchr(opt_spec, optopt)) && (s[1] == ':') )
+      {
+        fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+      }
+      else if( isprint(optopt) )
+      {
+        fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+      }
+      else
+      {
+        fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+      }
+      fprintf(stderr, "(use -h for usage)\n");
+      exit(1);
 
-	/* Close all file descriptors and redirect stdio to /dev/null */
-	if ((i = getdtablesize()) == -1)
-		i = 256;
+    default:
+      abort ();
+    }
+  }
 
-	while (--i >= 0)
-		close(i);
+  if( opt_daemon && daemon(0,0) )
+  {
+    perror("daemon"); exit(1);
+  }
 
-	i = open("/dev/null", O_RDWR);
-	dup(i);
-	dup(i);
-
-	/* Set umask */
-	umask(022);
-
-	/* Set working directory */
-	chdir("/tmp");
-
-	/* If the file exists, we have crashed / restarted */
-	if (access(ALARMD_LOCKFILE, F_OK) == 0) {
-		/* OK */
-	} else if (errno != ENOENT) {
-		g_critical("access() failed: %s. Exiting.", g_strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	/* Single instance */
-	if ((i = open(ALARMD_LOCKFILE, O_RDWR | O_CREAT, 0640)) < 0) {
-		g_critical("Cannot open lockfile. Exiting.");
-		exit(EXIT_FAILURE);
-	}
-
-	if (lockf(i, F_TLOCK, 0) < 0) {
-		g_critical("Already running. Exiting.");
-		exit(EXIT_FAILURE);
-	}
-
-	sprintf(str, "%d\n", getpid());
-	write(i, str, strlen(str));
-	close(i);
-
-	/* Ignore TTY signals */
-	signal(SIGTSTP, SIG_IGN);
-	signal(SIGTTOU, SIG_IGN);
-	signal(SIGTTIN, SIG_IGN);
-
-	/* Ignore child terminate signal */
-	signal(SIGCHLD, SIG_IGN);
-}
-
-/*
- * Main
- *
- * @param argc Number of command line arguments
- * @param argv Array with command line arguments
- * @return 0 on success, non-zero on failure
- */
-int main(int argc, char **argv)
-{
-	int optc;
-	int opt_index;
-
-	gint status = 0;
-	gboolean daemonflag = FALSE;
-
-	AlarmdQueue *queue = NULL;
-	osso_context_t *osso = NULL;
-	gchar *queue_file = NULL;
-	gchar *next_time_file = NULL;
-	gchar *next_mode_file = NULL;
-
-	const char optline[] = "d";
-
-	struct option const options[] = {
-		{ "daemonflag", no_argument, 0, 'd' },
-		{ "help", no_argument, 0, 'h' },
-		{ "version", no_argument, 0, 'V' },
-		{ 0, 0, 0, 0 }
-	};
-
-	/* NULL the mainloop */
-	mainloop = NULL;
-
-	/* Initialise support for locales, and set the program-name */
-	if (init_locales(PRG_NAME) != 0)
-		goto EXIT;
-
-	/* Parse the command-line options */
-	while ((optc = getopt_long(argc, argv, optline,
-				   options, &opt_index)) != -1) {
-		switch (optc) {
-		case 'd':
-			daemonflag = TRUE;
-			break;
-
-		case 'h':
-			usage();
-			goto EXIT;
-
-		case 'V':
-			version();
-			goto EXIT;
-
-		default:
-			usage();
-			status = EINVAL;
-			goto EXIT;
-		}
-	}
-
-	/* We don't take any non-flag arguments */
-	if ((argc - optind) > 0) {
-		fprintf(stderr,
-			_("%s: Too many arguments\n"
-			  "Try: `%s --help' for more information.\n"),
-			progname, progname);
-		status = EINVAL;
-		goto EXIT;
-	}
-
-	/* Daemonize if requested */
-	if (daemonflag == TRUE)
-		daemonize();
-
-	signal(SIGUSR1, signal_handler);
-	signal(SIGHUP, signal_handler);
-	signal(SIGTERM, signal_handler);
-
-	/* Initialize GLib type system. */
-	g_type_init();
-
-	alarmd_type_init();
-	osso = init_osso();
-	dbus_set_osso(osso);
-
-	queue_file = g_build_filename(DATADIR, "alarm_queue.xml", NULL);
-	next_time_file = g_build_filename(DATADIR, "next_alarm_time", NULL);
-	next_mode_file = g_build_filename(DATADIR, "next_alarm_mode", NULL);
-
-	queue = init_queue(queue_file, next_time_file, next_mode_file);
-	set_osso_callbacks(osso, queue);
-	g_free(queue_file);
-	g_free(next_time_file);
-	g_free(next_mode_file);
-
-	/* Register a mainloop */
-	mainloop = g_main_loop_new(NULL, FALSE);
-
-	/* Run the main loop */
-	g_main_loop_run(mainloop);
-
-
-	deinit_osso(osso, queue);
-	g_object_unref(queue);
-	/* If we get here, the main loop has terminated;
-	 * either because we requested or because of an error
-	 */
-EXIT:
-	/* If the mainloop is initialised, unreference it */
-	if (mainloop != NULL)
-		g_main_loop_unref(mainloop);
-
-	/* Log a farewell message and close the log */
-	g_message("Exiting...");
-
-	return status;
+  log_set_level(log_level);
+  log_open("alarmd", log_driver, 1);
+  log_debug("INIT\n");
+  int xc = mainloop_run();
+  log_debug("EXIT\n");
+  log_close();
+  return xc;
 }

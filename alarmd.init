@@ -1,0 +1,140 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:             alarmd
+# Required-Start:       $remote_fs $syslog dbus clockd
+# Required-Stop:        $remote_fs $syslog dbus clockd
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    Alarm daemon
+# Description:          This init script starts the alarm daemon software
+#                       used on the maemo platform.
+### END INIT INFO
+#
+# Startup script for the alarmd.
+#
+# Contact Person: Simo Piiroinen <simo.piiroinen@nokia.com>
+#
+# Copyright (C) 2008 Nokia Corporation.
+#
+# This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
+# conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=@SBINDIR@/alarmd
+NAME=alarmd
+DESC="Alarm Daemon"
+INITFILE=/etc/init.d/$NAME
+DSMETOOL=/usr/sbin/dsmetool
+DAEMON_OPTS=""
+
+# abort if no executable exists
+test -x $DAEMON
+
+# Include alarmd defaults if available
+if [ -f /etc/alarmd/alarmd-settings.default ] ; then
+  echo "Setting defaults..."
+    . /etc/alarmd/alarmd-settings.default
+fi
+
+set -e
+
+# only use dsmetool if it exists
+test -x $DSMETOOL || USE_DSMETOOL="no"
+
+if [ -e /etc/osso-af-init/af-defines.sh ]
+then
+  . /etc/osso-af-init/af-defines.sh
+else
+  echo "/etc/osso-af-init/af-defines.sh: not found!"
+  #exit 1
+fi
+
+for i in /etc/osso-af-init/*.defs; do
+  if [ -f $i ]; then
+    . $i
+  else
+    echo "$i: not found!"
+  fi
+done
+
+kill_old_daemons()
+{
+  # get rid of old daemons that were
+  # - installed at /usr/bin
+  # - executed without dsmetool
+  # and no, killall will not do - sigh
+
+  for cmd in $(grep -l ^/usr/bin/alarmd /proc/[1-9]*/cmdline); do
+   dir=$(dirname  $cmd)
+   pid=$(basename $dir)
+   case $(readlink $dir/exe) in
+     /usr/bin/alarmd*)
+       echo "Killing old alarmd: pid=$pid"
+       kill -TERM $pid
+       sleep 3
+       if [ -d $dir ]; then
+         kill -KILL $pid
+       	 sleep 3
+       fi
+       ;;
+   esac
+  done
+}
+
+start_alarmd()
+{
+  # already installed initscripts are unable to deal with
+  # alarmd started directly from xsession.d scripts ...
+  kill_old_daemons
+
+  # Start the daemon
+  if [ -h /targets/links/scratchbox.config ]; then
+    echo "SCRATCHBOX: you need to start $DAEMON using run-standalone.sh"
+  elif [ "$USE_DSMETOOL" = "no" ]; then
+      run-standalone.sh \
+      start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
+  else
+      run-standalone.sh \
+      dsmetool -U user -G users -f "$DAEMON $DAEMON_OPTS"
+  fi
+}
+
+stop_alarmd()
+{
+  if [ -h /targets/links/scratchbox.config ]; then
+    echo "SCRATCHBOX: you need to stop $DAEMON manually"
+  elif [ "$USE_DSMETOOL" = "no" ]; then
+    start-stop-daemon --stop --oknodo --quiet --exec $DAEMON
+  else
+    dsmetool -k "$DAEMON $DAEMON_OPTS"
+  fi
+}
+
+set -e
+
+case "$1" in
+  start)
+    printf "Starting $DESC: $NAME\n"
+    start_alarmd
+    ;;
+
+  stop)
+    printf "Stopping: $DESC: $NAME\n"
+    stop_alarmd
+    ;;
+
+  restart|force-reload)
+    printf "Restarting $DESC: $NAME\n"
+    stop_alarmd
+    sleep 2
+    start_alarmd
+    ;;
+
+  *)
+    printf >&2 "Usage: $INITFILE {start|stop|restart|force-reload}\n"
+    exit 1
+    ;;
+esac
+
+exit 0

@@ -1,5 +1,0 @@
-#!/bin/sh
-
-rm -f @VARDIR@/alarm_queue.xml
-rm -f @VARDIR@/next_alarm_time
-rm -f @VARDIR@/next_alarm_mode

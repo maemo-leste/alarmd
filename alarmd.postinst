@@ -1,0 +1,13 @@
+#! /bin/sh
+
+set -e
+
+if [ ! -d "@CACHEDIR@" ]; then
+  mkdir -p "@CACHEDIR@"
+fi
+
+if [ -d "@CACHEDIR@" ]; then
+  chown user:users "@CACHEDIR@"
+fi
+
+#DEBHELPER#

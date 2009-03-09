@@ -1,728 +1,931 @@
-/**
- * This file is part of alarmd
- *
- * Contact Person: David Weinehall <david.weinehall@nokia.com>
- *
- * Copyright (C) 2006 Nokia Corporation
- * alarmd and libalarm are free software; you can redistribute them
- * and/or modify them under the terms of the GNU Lesser General Public
- * License version 2.1 as published by the Free Software Foundation.
- *
- * alarmd and libalarm are distributed in the hope that they will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA
- */
+#include "libalarm.h"
 
-#include <glib.h>
-#include <glib-object.h>
-#include "include/alarm_event.h"
-#include "queue.h"
-#include "event.h"
-#include "action.h"
-#include "debug.h"
+#include "logging.h"
+#include "xutil.h"
+#include "ticker.h"
 
-static const time_t _day_in_seconds = 24 * 60 * 60;
+#include <stdio.h>
 
-static void alarmd_event_init(AlarmdEvent *event);
-static void alarmd_event_class_init(AlarmdEventClass *klass);
-static void _alarmd_event_set_property(GObject *object,
-		guint param_id,
-		const GValue *value,
-		GParamSpec *pspec);
-static void _alarmd_event_get_property(GObject *object,
-		guint param_id,
-		GValue *value,
-		GParamSpec *pspec);
+/* ========================================================================= *
+ * alarm_event_t  --  methods
+ * ========================================================================= */
 
-static void _alarmd_event_real_fire(AlarmdEvent *event, gboolean delayed);
-static void _alarmd_event_fired(AlarmdEvent *event, gboolean delayed);
-static void _alarmd_event_real_cancel(AlarmdEvent *event);
-static void _alarmd_event_real_acknowledge(AlarmdEvent *event);
-static void _alarmd_event_real_snooze(AlarmdEvent *event);
-static void _alarmd_event_real_queue(AlarmdEvent *event, TimerPlugin *plugin);
-static void _alarmd_event_real_dequeue(AlarmdEvent *event);
-static void _alarmd_event_real_dequeued(AlarmdEvent *event);
-static time_t _alarmd_event_real_get_time(AlarmdEvent *event);
-static gint32 _alarmd_event_real_get_flags(AlarmdEvent *event);
-static void _alarmd_event_finalize(GObject *object);
-static void _alarmd_event_changed(AlarmdEvent *event, gpointer user_data);
-static GSList *_alarmd_event_get_saved_properties(void);
-static void _alarmd_event_action_acknowledge(AlarmdEvent *event, guint ack_type, AlarmdAction *action);
-static gboolean _alarmd_event_real_need_power_up(AlarmdEvent *event);
-static void _alarmd_event_time_changed(AlarmdObject *object);
+static const struct tm tm_initializer =
+{
+  .tm_sec   =  0,
+  .tm_min   = -1,
+  .tm_hour  = -1,
 
-enum signals {
-	SIGNAL_FIRE,
-	SIGNAL_CANCEL,
-	SIGNAL_ACKNOWLEDGE,
-	SIGNAL_SNOOZE,
-	SIGNAL_QUEUE,
-	SIGNAL_DEQUEUE,
-	SIGNAL_COUNT
+  .tm_mday  = -1,
+  .tm_mon   = -1,
+  .tm_year  = -1,
+
+  .tm_wday  = -1,
+  .tm_yday  = -1,
+  .tm_isdst = -1,
 };
 
-enum properties {
-	PROP_ACTION = 1,
-	PROP_TIME,
-	PROP_SNOOZE_INT,
-	PROP_SNOOZE,
-	PROP_COOKIE,
-	PROP_QUEUE,
-};
+/* ------------------------------------------------------------------------- *
+ * alarm_event_ctor
+ * ------------------------------------------------------------------------- */
 
-enum saved_props {
-	S_ACTION,
-	S_TIME,
-	S_SNOOZE_INT,
-	S_SNOOZE,
-	S_COOKIE,
-	S_COUNT
-};
-
-static const gchar * const saved_properties[S_COUNT] =
+void
+alarm_event_ctor(alarm_event_t *self)
 {
-	"action",
-	"time",
-	"snooze_interval",
-	"snooze",
-	"cookie",
-};
+  self->cookie         = 0;
+  self->trigger        = 0;
 
-static guint event_signals[SIGNAL_COUNT];
+  self->title          = 0;
+  self->message        = 0;
+  self->sound          = 0;
+  self->icon           = 0;
+  self->flags          = 0;
 
-typedef struct _AlarmdEventPrivate AlarmdEventPrivate;
-struct _AlarmdEventPrivate {
-	TimerPlugin *queued;
-	time_t alarm_time;
-	guint snooze_interval;
-	guint snooze;
-	AlarmdAction *action;
-	AlarmdQueue *queue;
-	gulong action_changed_signal;
-	gulong action_acknowledged_signal;
-	glong cookie;
-};
+  self->alarm_appid    = 0;
 
+  self->alarm_time     = -1;
+  self->alarm_tm       = tm_initializer;
+  self->alarm_tz       = 0;
 
-#define ALARMD_EVENT_GET_PRIVATE(obj) \
-(G_TYPE_INSTANCE_GET_PRIVATE ((obj), \
-			      ALARMD_TYPE_EVENT, AlarmdEventPrivate));
+  self->recur_secs     = 0;
+  self->recur_count    = 0;
 
+  self->snooze_secs    = 0;
+  self->snooze_total   = 0;
 
-GType alarmd_event_get_type(void)
-{
-	static GType event_type = 0;
+  self->response       = -1;
+  self->action_cnt     = 0;
+  self->action_tab     = 0;
 
-	if (!event_type)
-	{
-		static const GTypeInfo event_info =
-		{
-			sizeof (AlarmdEventClass),
-			NULL,
-			NULL,
-			(GClassInitFunc) alarmd_event_class_init,
-			NULL,
-			NULL,
-			sizeof (AlarmdEvent),
-			0,
-			(GInstanceInitFunc) alarmd_event_init,
-			NULL
-		};
+  self->recurrence_cnt = 0;
+  self->recurrence_tab = 0;
 
-		event_type = g_type_register_static(ALARMD_TYPE_OBJECT,
-				"AlarmdEvent",
-				&event_info, 0);
-	}
-
-	return event_type;
+  self->attr_cnt       = 0;
+  self->attr_tab       = 0;
 }
 
-AlarmdEvent *alarmd_event_new(void)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_dtor
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_dtor(alarm_event_t *self)
 {
-	AlarmdEvent *retval;
-	ENTER_FUNC;
-	retval = g_object_new(ALARMD_TYPE_EVENT, NULL);
-	LEAVE_FUNC;
-	return retval;
+  free(self->title);
+  free(self->message);
+  free(self->sound);
+  free(self->icon);
+  free(self->alarm_appid);
+  free(self->alarm_tz);
+
+  alarm_event_del_actions(self);
+  alarm_event_del_recurrences(self);
+
+  alarm_event_del_attrs(self);
 }
 
-void alarmd_event_fire(AlarmdEvent *event, gboolean delayed)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_create
+ * ------------------------------------------------------------------------- */
+
+alarm_event_t *
+alarm_event_create(void)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_FIRE], 0, delayed);
-	LEAVE_FUNC;
+  alarm_event_t *self = calloc(1, sizeof *self);
+  alarm_event_ctor(self);
+  return self;
 }
 
-void alarmd_event_cancel(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_create_ex
+ * ------------------------------------------------------------------------- */
+
+alarm_event_t *
+alarm_event_create_ex(size_t actions)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_CANCEL], 0);
-	LEAVE_FUNC;
+  alarm_event_t *self = calloc(1, sizeof *self);
+
+  alarm_event_ctor(self);
+
+  alarm_event_add_actions(self, actions);
+
+  return self;
 }
 
-void alarmd_event_acknowledge(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_delete
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_delete(alarm_event_t *self)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_ACKNOWLEDGE], 0);
-	LEAVE_FUNC;
+  if( self != 0 )
+  {
+    alarm_event_dtor(self);
+    free(self);
+  }
 }
 
-void alarmd_event_snooze(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_delete_cb
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_delete_cb(void *self)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_SNOOZE], 0);
-	LEAVE_FUNC;
+  alarm_event_delete(self);
 }
 
-void alarmd_event_queue(AlarmdEvent *event, TimerPlugin *plugin)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_action
+ * ------------------------------------------------------------------------- */
+
+alarm_action_t *
+alarm_event_get_action(const alarm_event_t *self, int index)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_QUEUE], 0, plugin);
-	LEAVE_FUNC;
+  alarm_action_t *action = 0;
+  if( 0 <= index && index < self->action_cnt )
+  {
+    action = &self->action_tab[index];
+  }
+  return action;
 }
 
-void alarmd_event_dequeue(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_action_dbus_args
+ * ------------------------------------------------------------------------- */
+
+int
+alarm_event_set_action_dbus_args(const alarm_event_t *self, int index, int type, ...)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_DEQUEUE], 0);
-	LEAVE_FUNC;
+  int             error = -1;
+  alarm_action_t *action = 0;
+
+  if( (action = alarm_event_get_action(self, index)) != 0 )
+  {
+    va_list va;
+    va_start(va, type);
+    error = alarm_action_set_dbus_args_valist(action, type, va);
+    va_end(va);
+  }
+
+  return error;
 }
 
-time_t alarmd_event_get_time(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_action_dbus_args
+ * ------------------------------------------------------------------------- */
+
+const char *
+alarm_event_get_action_dbus_args(const alarm_event_t *self, int index)
 {
-	AlarmdEventClass *klass = ALARMD_EVENT_GET_CLASS(event);
-	time_t retval;
-	ENTER_FUNC;
-	retval = klass->get_time(event);
-	LEAVE_FUNC;
-	return retval;
+  const char     *args   = 0;
+  alarm_action_t *action = 0;
+
+  if( (action = alarm_event_get_action(self, index)) != 0 )
+  {
+    args = action->dbus_args;
+  }
+
+  return args;
 }
 
-static void alarmd_event_init(AlarmdEvent *event)
-{
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_del_action_dbus_args
+ * ------------------------------------------------------------------------- */
 
-	priv->queued = NULL;
-	priv->snooze_interval = 0;
-	priv->snooze = 0;
-	priv->alarm_time = 0;
-	priv->action = NULL;
-	priv->cookie = 0;
-	priv->queue = NULL;
-	priv->action_acknowledged_signal = 0;
-	LEAVE_FUNC;
+void
+alarm_event_del_action_dbus_args(const alarm_event_t *self, int index)
+{
+  alarm_action_t *action = 0;
+
+  if( (action = alarm_event_get_action(self, index)) != 0 )
+  {
+    alarm_action_del_dbus_args(action);
+  }
 }
 
-static void alarmd_event_class_init(AlarmdEventClass *klass)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_time
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_set_time(alarm_event_t *self, const struct tm *tm)
 {
-	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-	AlarmdObjectClass *aobject_class = ALARMD_OBJECT_CLASS(klass);
-
-	ENTER_FUNC;
-	g_type_class_add_private(klass, sizeof(AlarmdEventPrivate));
-
-	gobject_class->set_property = _alarmd_event_set_property;
-	gobject_class->get_property = _alarmd_event_get_property;
-	gobject_class->finalize = _alarmd_event_finalize;
-
-	aobject_class->get_saved_properties = _alarmd_event_get_saved_properties;
-	aobject_class->time_changed = _alarmd_event_time_changed;
-
-	klass->fire = _alarmd_event_real_fire;
-	klass->cancel = _alarmd_event_real_cancel;
-	klass->acknowledge = _alarmd_event_real_acknowledge;
-	klass->snooze = _alarmd_event_real_snooze;
-	klass->queue = _alarmd_event_real_queue;
-	klass->dequeue = _alarmd_event_real_dequeue;
-
-	klass->get_time = _alarmd_event_real_get_time;
-	klass->get_flags = _alarmd_event_real_get_flags;
-	klass->need_power_up = _alarmd_event_real_need_power_up;
-
-	g_object_class_install_property(gobject_class,
-			PROP_ACTION,
-			g_param_spec_object("action",
-				"Event's action.",
-				"Action done when event is due.",
-				ALARMD_TYPE_ACTION,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-	g_object_class_install_property(gobject_class,
-			PROP_TIME,
-			g_param_spec_int64("time",
-				"Event's time.",
-				"Time when event is due.",
-				0,
-				G_MAXINT64,
-				0,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-	g_object_class_install_property(gobject_class,
-			PROP_SNOOZE_INT,
-			g_param_spec_uint("snooze_interval",
-				"Postponing interval.",
-				"Amount of time the event is postponed when snoozed.",
-				0,
-				G_MAXUINT,
-				0,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-	g_object_class_install_property(gobject_class,
-			PROP_SNOOZE,
-			g_param_spec_uint("snooze",
-				"Time snoozed.",
-				"Amount of time the event has been snoozed.",
-				0,
-				G_MAXUINT,
-				0,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-	g_object_class_install_property(gobject_class,
-			PROP_COOKIE,
-			g_param_spec_long("cookie",
-				"Event's id.",
-				"Unique ID for the event.",
-				0,
-				G_MAXLONG,
-				0,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-	g_object_class_install_property(gobject_class,
-			PROP_QUEUE,
-			g_param_spec_object("queue",
-				"Queue the event is on.",
-				"The queue that has the event.",
-				ALARMD_TYPE_QUEUE,
-				G_PARAM_READABLE | G_PARAM_WRITABLE));
-
-	event_signals[SIGNAL_FIRE] = g_signal_new("fire",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, fire),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__BOOLEAN,
-			G_TYPE_NONE, 1,
-			G_TYPE_BOOLEAN);
-	event_signals[SIGNAL_CANCEL] = g_signal_new("cancel",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, cancel),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__VOID,
-			G_TYPE_NONE, 0);
-	event_signals[SIGNAL_ACKNOWLEDGE] = g_signal_new("acknowledge",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, acknowledge),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__VOID,
-			G_TYPE_NONE, 0);
-	event_signals[SIGNAL_SNOOZE] = g_signal_new("snooze",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, snooze),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__VOID,
-			G_TYPE_NONE, 0);
-	event_signals[SIGNAL_QUEUE] = g_signal_new("queue",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, queue),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__POINTER,
-			G_TYPE_NONE, 1,
-			G_TYPE_POINTER);
-	event_signals[SIGNAL_DEQUEUE] = g_signal_new("dequeue",
-			G_TYPE_FROM_CLASS(gobject_class),
-			G_SIGNAL_RUN_FIRST | G_SIGNAL_ACTION | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
-			G_STRUCT_OFFSET(AlarmdEventClass, dequeue),
-			NULL, NULL,
-			g_cclosure_marshal_VOID__VOID,
-			G_TYPE_NONE, 0);
-	LEAVE_FUNC;
+  self->alarm_tm = *tm;
+  self->alarm_time = -1;
 }
 
-static void _alarmd_event_action_acknowledge(AlarmdEvent *event, guint ack_type, AlarmdAction *action)
-{
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-	(void)action;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_time
+ * ------------------------------------------------------------------------- */
 
-	if (priv->action_acknowledged_signal) {
-		g_signal_handler_disconnect(priv->action, priv->action_acknowledged_signal);
-		priv->action_acknowledged_signal = 0;
-	}
-	if (ack_type == ACK_NORMAL) {
-		g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_ACKNOWLEDGE], 0);
-	} else {
-		g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_SNOOZE], 0);
-	}
-	LEAVE_FUNC;
+void
+alarm_event_get_time(const alarm_event_t *self, struct tm *tm)
+{
+  if( self->alarm_time > 0 )
+  {
+    ticker_get_local_ex(self->alarm_time, tm);
+
+// QUARANTINE     // FIXME: libtime code does not compile, huh?
+// QUARANTINE     localtime_r(&self->alarm_time, tm);
+
+// QUARANTINE     char tz[128];
+// QUARANTINE     time_get_timezone(tz, sizeof tz);
+// QUARANTINE     time_get_remote(self->alarm_time, tz, tm);
+  }
+  else
+  {
+    *tm = self->alarm_tm;
+  }
 }
 
-static void _alarmd_event_real_fire(AlarmdEvent *event, gboolean delayed)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_del_actions
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_del_actions(alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-
-	if (priv->action) {
-		if (delayed) {
-			gint flags;
-			g_object_get(priv->action, "flags", &flags, NULL);
-			if (flags & ALARM_EVENT_POSTPONE_DELAYED) {
-				time_t now = time(NULL);
-
-				if (now > (time_t)(priv->alarm_time + priv->snooze * 60 + _day_in_seconds))
-				{
-					time_t d = now - priv->alarm_time - priv->snooze * 60;
-					guint count = d / _day_in_seconds + 1;
-					priv->alarm_time += count *
-					       	_day_in_seconds;
-					g_object_set(event, 
-							"time",
-							priv->alarm_time,
-							NULL);
-					LEAVE_FUNC;
-					return;
-				} else {
-					delayed = FALSE;
-				}
-			}
-		}
-		priv->action_acknowledged_signal = 
-			g_signal_connect_swapped(priv->action, "acknowledge", (GCallback)_alarmd_event_action_acknowledge, event);
-		alarmd_action_run(priv->action, delayed);
-	} else {
-		g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_ACKNOWLEDGE], 0);
-	}
-	LEAVE_FUNC;
+  for( size_t i = 0; i < self->action_cnt; ++i )
+  {
+    alarm_action_dtor(&self->action_tab[i]);
+  }
+  free(self->action_tab);
+  self->action_tab = 0;
+  self->action_cnt = 0;
 }
 
-static void _alarmd_event_fired(AlarmdEvent *event, gboolean delayed)
-{
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_add_actions
+ * ------------------------------------------------------------------------- */
 
-	DEBUG("%p: queued = NULL", event);
-	DEBUG("Unreffing %p", event);
-	g_object_unref(event);
-	priv->queued = NULL;
-	alarmd_event_fire(event, delayed);
-	
-	LEAVE_FUNC;
+alarm_action_t *
+alarm_event_add_actions(alarm_event_t *self, size_t count)
+{
+  size_t previously = self->action_cnt;
+
+  self->action_cnt += count;
+
+  self->action_tab = realloc(self->action_tab,
+                          self->action_cnt * sizeof *self->action_tab);
+
+  for( size_t i = previously; i < self->action_cnt; ++i )
+  {
+    alarm_action_ctor(&self->action_tab[i]);
+  }
+
+  return &self->action_tab[previously];
 }
 
-static void _alarmd_event_real_cancel(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_del_recurrences
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_del_recurrences(alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-	if (priv->queued) {
-		priv->queued->remove_event(priv->queued);
-		DEBUG("%p: queued = NULL", event);
-		priv->queued = NULL;
-	}
-	LEAVE_FUNC;
+  for( size_t i = 0; i < self->recurrence_cnt; ++i )
+  {
+    alarm_recur_dtor(&self->recurrence_tab[i]);
+  }
+  free(self->recurrence_tab);
+  self->recurrence_tab  = 0;
+  self->recurrence_cnt = 0;
 }
 
-static void _alarmd_event_real_snooze(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_add_recurrences
+ * ------------------------------------------------------------------------- */
+
+alarm_recur_t *
+alarm_event_add_recurrences(alarm_event_t *self, size_t count)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	guint snooze;
-	guint64 now = time(NULL);
-	ENTER_FUNC;
+  size_t previously = self->recurrence_cnt;
 
-	if (priv->snooze_interval) {
-		snooze = priv->snooze_interval;
-	} else {
-		g_object_get(priv->queue, "snooze", &snooze, NULL);
-	}
+  self->recurrence_cnt += count;
 
-	priv->snooze += snooze;
+  self->recurrence_tab = realloc(self->recurrence_tab,
+                            self->recurrence_cnt * sizeof *self->recurrence_tab);
 
-	if (priv->alarm_time + priv->snooze * 60 < now) {
-		priv->snooze = (now - priv->alarm_time) / 60 + snooze;
-	}
-
-	alarmd_object_changed(ALARMD_OBJECT(event));
-	LEAVE_FUNC;
+  for( size_t i = previously; i < self->recurrence_cnt; ++i )
+  {
+    alarm_recur_ctor(&self->recurrence_tab[i]);
+  }
+  return &self->recurrence_tab[previously];
 }
 
-static void _alarmd_event_real_acknowledge(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_recurrence
+ * ------------------------------------------------------------------------- */
+
+alarm_recur_t *
+alarm_event_get_recurrence(const alarm_event_t *self, int index)
 {
-	ENTER_FUNC;
-	g_signal_emit(ALARMD_OBJECT(event), event_signals[SIGNAL_CANCEL], 0);
-	LEAVE_FUNC;
+  alarm_recur_t *rec = 0;
+  if( 0 <= index && index < self->recurrence_cnt )
+  {
+    rec = &self->recurrence_tab[index];
+  }
+  return rec;
 }
 
-static void _alarmd_event_real_queue(AlarmdEvent *event, TimerPlugin *plugin)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_title
+ * ------------------------------------------------------------------------- */
+
+const char *
+alarm_event_get_title(const alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-
-	if (priv->queued == plugin) {
-		DEBUG("%p already on given queue %p.", event, plugin);
-		LEAVE_FUNC;
-		return;
-	}
-
-	if (priv->queued) {
-		priv->queued->remove_event(priv->queued);
-		DEBUG("%p: queued = NULL", event);
-		priv->queued = NULL;
-	}
-	DEBUG("Reffing %p", event);
-	g_object_ref(event);
-	if (plugin->set_event(plugin, alarmd_event_get_time(event), (TimerCallback)_alarmd_event_fired, (TimerCancel)_alarmd_event_real_dequeued, event)) {
-		DEBUG("%p: queued = %p", event, plugin);
-		priv->queued = plugin;
-
-	} else {
-		DEBUG("Unreffing %p", event);
-		DEBUG("%p: queued = NULL", event);
-		priv->queued = NULL;
-		g_object_unref(event);
-	}
-	LEAVE_FUNC;
+  return self->title ?: "";
 }
 
-static void _alarmd_event_real_dequeued(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_title
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_set_title(alarm_event_t *self, const char *title)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-
-	if (priv->queued != NULL) {
-		DEBUG("%p: queued = NULL", event);
-		priv->queued = NULL;
-		alarmd_event_dequeue(event);
-		DEBUG("Unreffing %p", event);
-		g_object_unref(event);
-	}
-
-	LEAVE_FUNC;
+  xstrset(&self->title, title);
 }
 
-static void _alarmd_event_real_dequeue(AlarmdEvent *event)
-{
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_message
+ * ------------------------------------------------------------------------- */
 
-	if (priv->queued) {
-		priv->queued->remove_event(priv->queued);
-		DEBUG("%p: queued = NULL", event);
-	}
-	LEAVE_FUNC;
+const char *
+alarm_event_get_message(const alarm_event_t *self)
+{
+  return self->message ?: "";
 }
 
-static time_t _alarmd_event_real_get_time(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_message
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_set_message(alarm_event_t *self, const char *message)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-	
-	LEAVE_FUNC;
-	return priv->alarm_time + priv->snooze * 60;
+  xstrset(&self->message, message);
 }
 
-static gint32 _alarmd_event_real_get_flags(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_sound
+ * ------------------------------------------------------------------------- */
+
+const char *
+alarm_event_get_sound(const alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	gint32 retval = 0;
-	ENTER_FUNC;
-
-	if (priv->action) {
-		g_object_get(G_OBJECT(priv->action), "flags", &retval, NULL);
-	}
-
-	LEAVE_FUNC;
-	return retval;
+  return self->sound ?: "";
 }
 
-static void _alarmd_event_changed(AlarmdEvent *event, gpointer user_data)
-{
-	ENTER_FUNC;
-	(void)user_data;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_sound
+ * ------------------------------------------------------------------------- */
 
-	alarmd_object_changed(ALARMD_OBJECT(event));
-	LEAVE_FUNC;
+void
+alarm_event_set_sound(alarm_event_t *self, const char *sound)
+{
+  xstrset(&self->sound, sound);
 }
 
-static void _alarmd_event_set_property(GObject *object,
-		guint param_id,
-		const GValue *value,
-		GParamSpec *pspec)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_icon
+ * ------------------------------------------------------------------------- */
+
+const char *
+alarm_event_get_icon(const alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(object);
-	ENTER_FUNC;
-
-	DEBUG("param_id = %u", param_id);
-
-	switch (param_id) {
-	case PROP_ACTION:
-		if (priv->action) {
-			g_signal_handler_disconnect(priv->action, priv->action_changed_signal);
-			priv->action_changed_signal = 0;
-			g_object_set(priv->action, "event", NULL, NULL);
-			g_object_unref(priv->action);
-		}
-		priv->action = g_value_get_object(value);
-		if (priv->action) {
-			g_object_ref(priv->action);
-			priv->action_changed_signal = g_signal_connect(priv->action, "changed", (GCallback)_alarmd_event_changed, NULL);
-			g_object_set(priv->action, "event", object, NULL);
-		}
-		break;
-	case PROP_TIME:
-		priv->alarm_time = g_value_get_int64(value);
-		break;
-	case PROP_SNOOZE:
-		priv->snooze = g_value_get_uint(value);
-		break;
-	case PROP_SNOOZE_INT:
-		priv->snooze_interval = g_value_get_uint(value);
-		break;
-	case PROP_COOKIE:
-		priv->cookie = g_value_get_long(value);
-		break;
-	case PROP_QUEUE:
-		if (priv->queue) {
-			alarmd_queue_remove_event(priv->queue,
-					priv->cookie);
-			g_object_remove_weak_pointer(G_OBJECT(priv->queue),
-				       	(gpointer *)&priv->queue);
-		}
-		priv->queue = g_value_get_object(value);
-		if (priv->queue) {
-			g_object_add_weak_pointer(G_OBJECT(priv->queue),
-				       	(gpointer *)&priv->queue);
-		}
-		LEAVE_FUNC;
-		return;
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
-		LEAVE_FUNC;
-		return;
-		break;
-	}
-	alarmd_object_changed(ALARMD_OBJECT(object));
-	LEAVE_FUNC;
+  return self->icon ?: "";
 }
 
-static void _alarmd_event_get_property(GObject *object,
-		guint param_id,
-		GValue *value,
-		GParamSpec *pspec)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_icon
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_set_icon(alarm_event_t *self, const char *icon)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(object);
-	ENTER_FUNC;
-	switch (param_id) {
-	case PROP_ACTION:
-		g_value_set_object(value, priv->action);
-		break;
-	case PROP_TIME:
-		g_value_set_int64(value, priv->alarm_time);
-		break;
-	case PROP_SNOOZE:
-		g_value_set_uint(value, priv->snooze);
-		break;
-	case PROP_SNOOZE_INT:
-		g_value_set_uint(value, priv->snooze_interval);
-		break;
-	case PROP_COOKIE:
-		g_value_set_long(value, priv->cookie);
-		break;
-	case PROP_QUEUE:
-		g_value_set_object(value, priv->queue);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
-		LEAVE_FUNC;
-		return;
-		break;
-	}
-	LEAVE_FUNC;
+  xstrset(&self->icon, icon);
 }
 
-static void _alarmd_event_finalize(GObject *object)
-{
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(object);
-	ENTER_FUNC;
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_alarm_appid
+ * ------------------------------------------------------------------------- */
 
-	DEBUG("time: %lu", priv->alarm_time);
-	DEBUG("queued: %p", priv->queued);
-	if (priv->queue) {
-		g_object_remove_weak_pointer(G_OBJECT(priv->queue), (gpointer *)&priv->queue);
-	}
-	if (priv->action_acknowledged_signal) {
-		g_signal_handler_disconnect(priv->action, priv->action_acknowledged_signal);
-		priv->action_acknowledged_signal = 0;
-	}
-	if (priv->action) {
-		g_object_set(priv->action, "event", NULL, NULL);
-		g_object_unref(priv->action);
-		priv->action = NULL;
-	}
-	G_OBJECT_CLASS(g_type_class_peek(g_type_parent(ALARMD_TYPE_EVENT)))->finalize(object);
-	LEAVE_FUNC;
+const char *
+alarm_event_get_alarm_appid(const alarm_event_t *self)
+{
+  return self->alarm_appid ?: "";
 }
 
-static GSList *_alarmd_event_get_saved_properties()
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_alarm_appid
+ * ------------------------------------------------------------------------- */
+
+void
+alarm_event_set_alarm_appid(alarm_event_t *self, const char *alarm_appid)
 {
-	guint i;
-	GSList *retval = NULL;
-	ENTER_FUNC;
-	retval = ALARMD_OBJECT_CLASS(g_type_class_peek(g_type_parent(ALARMD_TYPE_EVENT)))->get_saved_properties();
-	for (i = 0; i < S_COUNT; i++) {
-		retval = g_slist_append(retval, (gpointer)saved_properties[i]);
-	}
-	LEAVE_FUNC;
-	return retval;
+  xstrset(&self->alarm_appid, alarm_appid);
 }
 
-static gboolean _alarmd_event_real_need_power_up(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_get_alarm_tz
+ * ------------------------------------------------------------------------- */
+
+const char *
+alarm_event_get_alarm_tz(const alarm_event_t *self)
 {
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
-	ENTER_FUNC;
-	if (!priv->action) {
-		LEAVE_FUNC;
-		return FALSE;
-	} else {
-		gboolean retval = alarmd_action_need_power_up(priv->action);
-		LEAVE_FUNC;
-		return retval;
-	}
+  return self->alarm_tz ?: "";
 }
 
-static void _alarmd_event_time_changed(AlarmdObject *object)
-{
-	AlarmdEvent *event = ALARMD_EVENT(object);
-	AlarmdEventPrivate *priv = ALARMD_EVENT_GET_PRIVATE(event);
+/* ------------------------------------------------------------------------- *
+ * alarm_event_set_alarm_tz
+ * ------------------------------------------------------------------------- */
 
-	ENTER_FUNC;
-	/* If we're on timer, the timer plugin will take care of us. */
-	if (!priv->queued && alarmd_event_get_time(event) < time(NULL)) {
-		alarmd_event_fire(event, TRUE);
-	}
-	LEAVE_FUNC;
+void
+alarm_event_set_alarm_tz(alarm_event_t *self, const char *alarm_tz)
+{
+  xstrset(&self->alarm_tz, alarm_tz);
 }
 
-gboolean alarmd_event_need_power_up(AlarmdEvent *event)
+/* ------------------------------------------------------------------------- *
+ * alarm_event_is_sane
+ * ------------------------------------------------------------------------- */
+
+int
+alarm_event_is_sane(const alarm_event_t *event)
 {
-	AlarmdEventClass *klass = ALARMD_EVENT_GET_CLASS(event);
-	gboolean retval;
-	ENTER_FUNC;
-	retval = klass->need_power_up(event);
-	LEAVE_FUNC;
-	return retval;
+  int err = 0;
+#if ENABLE_LOGGING
+  const char *function = __FUNCTION__;
+#endif
+
+  auto void W(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+  auto void E(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
+  auto void E(const char *fmt, ...)
+  {
+    char *msg = 0;
+    va_list va;
+    va_start(va, fmt);
+    vasprintf(&msg, fmt, va);
+    va_end(va);
+    log_error("%s: %s", function, msg);
+    free(msg);
+    err |= 2;
+  }
+  auto void W(const char *fmt, ...)
+  {
+    char *msg = 0;
+    va_list va;
+    va_start(va, fmt);
+    vasprintf(&msg, fmt, va);
+    va_end(va);
+    vasprintf(&msg, fmt, va);
+    log_warning("%s: %s", function, msg);
+    free(msg);
+    err |= 1;
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * appid must be defined
+   * - - - - - - - - - - - - - - - - - - - */
+
+  if( xisempty(event->alarm_appid) )
+  {
+    E("alarm_appid is empty\n");
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * scan action table first
+   * - - - - - - - - - - - - - - - - - - - */
+
+  int actions = 0; // valid actions found
+  int buttons = 0; // valid button actions found
+
+  if( (int)event->action_cnt < 0 )
+  {
+    E("action_cnt set to negative value?\n");
+  }
+
+  if( event->action_cnt == 0 && event->action_tab != 0 )
+  {
+    W("action_cnt == 0 && action_tab != NULL?\n");
+  }
+
+  if( event->action_cnt != 0 && event->action_tab == 0 )
+  {
+    E("action_cnt != 0 && action_tab == NULL?\n");
+  }
+
+  for( int i = 0; i < (int)event->action_cnt; ++i )
+  {
+    alarm_action_t *act = alarm_event_get_action(event, i);
+
+    if( act == 0 )
+    {
+      E("action_tab[%d] could not be accessed\n", i);
+      break;
+    }
+
+    // valid action ?
+    if( alarm_action_is_button(act) )
+    {
+      buttons += 1;
+      actions += 1;
+    }
+    else if( (act->flags & ALARM_ACTION_WHEN_MASK) &&
+             (act->flags & ALARM_ACTION_TYPE_MASK) )
+    {
+      actions += 1;
+    }
+
+    // action must have at least one WHEN bit set
+    if( (act->flags & ALARM_ACTION_WHEN_MASK) == 0 )
+    {
+      W("action_tab[%d] no ALARM_ACTION_WHEN_xxx bits set?\n", i);
+    }
+
+    // only button actions can have ALARM_ACTION_TYPE_NOP
+    if( (act->flags & ALARM_ACTION_TYPE_MASK) == 0 )
+    {
+      if( !alarm_action_is_button(act) ||
+          (act->flags & ALARM_ACTION_WHEN_MASK) != ALARM_ACTION_WHEN_RESPONDED )
+      {
+        W("action_tab[%d] no ALARM_ACTION_TYPE_xxx bits set?\n", i);
+      }
+    }
+
+    // action label is required for button, and makes no sense for
+    // non-button actions
+    if( (act->flags & ALARM_ACTION_WHEN_RESPONDED) && xisempty(act->label) )
+    {
+      E("action_tab[%d] ALARM_ACTION_WHEN_RESPONDED but no button label\n", i);
+    }
+    if( !(act->flags & ALARM_ACTION_WHEN_RESPONDED) && !xisempty(act->label) )
+    {
+      W("action_tab[%d] act->label is set for non button action\n", i);
+    }
+
+    if( act->flags & ALARM_ACTION_TYPE_DBUS )
+    {
+      // if it is dbus action, some fields are required
+
+      if( xisempty(act->dbus_interface) )
+      {
+        E("action_tab[%d] dbus_interface not set for dbus action\n", i);
+      }
+      if( xisempty(act->dbus_path) )
+      {
+        E("action_tab[%d] dbus_path not set for dbus action\n", i);
+      }
+      if( xisempty(act->dbus_name) )
+      {
+        E("action_tab[%d] dbus_name not set for dbus action\n", i);
+      }
+    }
+    else
+    {
+      // otherwise they should not be set
+
+      if( act->flags & ALARM_ACTION_DBUS_USE_SYSTEMBUS )
+      {
+        W("action_tab[%d] ALARM_ACTION_DBUS_USE_SYSTEMBUS set for non dbus action\n", i);
+      }
+      if( act->flags & ALARM_ACTION_DBUS_USE_ACTIVATION )
+      {
+        W("action_tab[%d] ALARM_ACTION_DBUS_USE_ACTIVATION set for non dbus action\n", i);
+      }
+      if( act->flags & ALARM_ACTION_DBUS_ADD_COOKIE )
+      {
+        W("action_tab[%d] ALARM_ACTION_DBUS_ADD_COOKIE set for non dbus action\n", i);
+      }
+      if( !xisempty(act->dbus_interface) )
+      {
+        W("action_tab[%d] dbus_interface set for non dbus action\n", i);
+      }
+      if( !xisempty(act->dbus_service) )
+      {
+        W("action_tab[%d] dbus_service set for non dbus action\n", i);
+      }
+      if( !xisempty(act->dbus_path) )
+      {
+        W("action_tab[%d] dbus_path set for non dbus action\n", i);
+      }
+      if( !xisempty(act->dbus_name) )
+      {
+        W("action_tab[%d] dbus_name set for non dbus action\n", i);
+      }
+      if( !xisempty(act->dbus_args) )
+      {
+        W("action_tab[%d] dbus_args set for non dbus action\n", i);
+      }
+    }
+
+    if( act->flags & ALARM_ACTION_TYPE_EXEC )
+    {
+      // if it is execute action, it should have command
+      if( xisempty(act->exec_command) )
+      {
+        E("action_tab[%d] exec_command not set for exec action\n", i);
+      }
+    }
+    else
+    {
+      // otherwise command should not be set
+      if( !xisempty(act->exec_command) )
+      {
+        W("action_tab[%d] exec_command set for non exec action\n", i);
+      }
+      // or adding cookie requested
+      if( act->flags & ALARM_ACTION_EXEC_ADD_COOKIE )
+      {
+        W("action_tab[%d] adding exec cookie set for non exec action\n", i);
+      }
+    }
+  }
+
+  if( event->action_cnt == 0 )
+  {
+    E("event has no actions!\n");
+  }
+  else if( actions == 0 )
+  {
+    E("event has no actions that are configured to do something\n");
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * only one of the boot bits should be set
+   * - - - - - - - - - - - - - - - - - - - */
+
+  if( (event->flags & ALARM_EVENT_BOOT) &&
+      (event->flags & ALARM_EVENT_ACTDEAD) )
+  {
+    W("flags has both BOOT and ACTDEAD?\n");
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * alarm time checks
+   * - - - - - - - - - - - - - - - - - - - */
+
+  // timezone makes no sence for absolute alarm time
+  if( (event->alarm_time > 0) && !xisempty(event->alarm_tz) )
+  {
+    W("alarm_tz set for absolute time alarm\n");
+  }
+
+  // should not specify both broken down & absolute alarm time
+  if( event->alarm_time > 0 )
+  {
+    if( !ticker_tm_is_uninitialized(&event->alarm_tm) )
+    {
+      alarm_event_t def;
+      alarm_event_ctor(&def);
+      if( !ticker_tm_is_same(&event->alarm_tm, &def.alarm_tm) )
+      {
+        W("both alarm_time and alarm_tm are set!\n");
+      }
+      alarm_event_dtor(&def);
+    }
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * snooze checks
+   * - - - - - - - - - - - - - - - - - - - */
+
+  // negative snooze makes no sense
+  if( event->snooze_secs < 0 )
+  {
+    W("snooze_secs is negative?\n");
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * dialog settings make sense only if
+   * there are buttons too
+   * - - - - - - - - - - - - - - - - - - - */
+
+  if( xisempty(event->message) && buttons != 0 )
+  {
+    W("message is empty, but there are button actions?\n");
+  }
+
+  if( !xisempty(event->message) && buttons == 0 )
+  {
+    W("message is non-empty, but there are no button actions?\n");
+  }
+
+  if( !xisempty(event->sound) && buttons == 0 )
+  {
+    W("sound is non-empty, but there are no button actions?\n");
+  }
+
+  if( !xisempty(event->icon) && buttons == 0 )
+  {
+    W("icon is non-empty, but there are no button actions?\n");
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * recurrence
+   * - - - - - - - - - - - - - - - - - - - */
+
+  if( event->recur_secs < 0 )
+  {
+    E("recur_secs is negative\n");
+  }
+
+  if( (int)event->recurrence_cnt < 0 )
+  {
+    E("recurrence_cnt set to negative value?\n");
+  }
+
+  if( event->recurrence_cnt == 0 && event->recurrence_tab != 0 )
+  {
+    W("recurrence_cnt == 0 && recurrence_tab != NULL?\n");
+  }
+
+  if( event->recurrence_cnt != 0 && event->recurrence_tab == 0 )
+  {
+    E("recurrence_cnt != 0 && recurrence_tab == NULL?\n");
+  }
+
+  int recmasks = 0;
+
+  for( int i = 0; i < (int)event->recurrence_cnt; ++i )
+  {
+    alarm_recur_t *rec = alarm_event_get_recurrence(event, i);
+    if( rec == 0 )
+    {
+      E("recurrence_tab[%d] could not be accessed\n", i);
+      break;
+    }
+
+    if( rec->mask_min  == ALARM_RECUR_MIN_DONTCARE &&
+        rec->mask_hour == ALARM_RECUR_HOUR_DONTCARE &&
+        rec->mask_mday == ALARM_RECUR_MDAY_DONTCARE &&
+        rec->mask_wday == ALARM_RECUR_WDAY_DONTCARE &&
+        rec->mask_mon  == ALARM_RECUR_MON_DONTCARE &&
+        rec->special   == ALARM_RECUR_SPECIAL_NONE )
+    {
+      W("recurrence_tab[%d] is blank and makes no sense\n", i);
+    }
+    else
+    {
+      recmasks += 1;
+    }
+  }
+
+  if( event->recur_count != 0 )
+  {
+    if( event->recur_secs <= 0 )
+    {
+      if( event->recurrence_cnt == 0 )
+      {
+        E("recur_count != 0, recurrence interval not set\n");
+      }
+      else if( recmasks == 0 )
+      {
+        E("recur_count != 0, no valid recurrence items\n");
+      }
+    }
+  }
+
+  if( event->recur_secs > 0 && event->recur_count == 0 )
+  {
+    E("recur_secs > 0 and recur_count == 0\n");
+  }
+
+  if( event->recurrence_cnt > 0 && event->recur_count == 0 )
+  {
+    E("recurrence_cnt > 0 and recur_count == 0\n");
+  }
+
+  if( event->recur_secs > 0 && event->recurrence_cnt > 0 )
+  {
+    E("recur_secs > 0 and recurrence_cnt > 0\n");
+  }
+
+  return (err&2) ? -1 : err ? 0 : 1;
 }
 
-gint32 alarmd_event_get_flags(AlarmdEvent *event)
+void
+alarm_event_del_attrs(alarm_event_t *self)
 {
-	AlarmdEventClass *klass = ALARMD_EVENT_GET_CLASS(event);
-	gint32 retval;
-	ENTER_FUNC;
-	retval = klass->get_flags(event);
-	LEAVE_FUNC;
-	return retval;
+  for( size_t i = 0; i < self->attr_cnt; ++i )
+  {
+    alarm_attr_delete(self->attr_tab[i]);
+  }
+  free(self->attr_tab);
+
+  self->attr_cnt       = 0;
+  self->attr_tab       = 0;
+}
+
+void
+alarm_event_rem_attr(alarm_event_t *self, const char *name)
+{
+  size_t k = 0;
+  for( size_t i = 0; i < self->attr_cnt; ++i )
+  {
+    alarm_attr_t *att = self->attr_tab[i];
+    if( !strcmp(att->attr_name, name) )
+    {
+      alarm_attr_delete(att);
+    }
+    else
+    {
+      self->attr_tab[k++] = att;
+    }
+  }
+  self->attr_cnt = k;
+}
+
+alarm_attr_t *
+alarm_event_get_attr(alarm_event_t *self, const char *name)
+{
+
+  for( size_t i = 0; i < self->attr_cnt; ++i )
+  {
+    alarm_attr_t *res = self->attr_tab[i];
+    if( !strcmp(res->attr_name, name) )
+    {
+      return res;
+    }
+  }
+  return 0;
+}
+
+int
+alarm_event_has_attr(alarm_event_t *self, const char *name)
+{
+  return alarm_event_get_attr(self, name) != 0;
+}
+
+alarm_attr_t *
+alarm_event_add_attr(alarm_event_t *self, const char *name)
+{
+  alarm_attr_t *res = alarm_event_get_attr(self, name);
+
+  if( res == 0 )
+  {
+    res = alarm_attr_create(name);
+
+    self->attr_cnt += 1;
+    self->attr_tab = realloc(self->attr_tab,
+                             self->attr_cnt * sizeof *self->attr_tab);
+    self->attr_tab[self->attr_cnt-1] = res;
+  }
+
+  return res;
+}
+
+void
+alarm_event_set_attr_int(alarm_event_t *self, const char *name, int val)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+  alarm_attr_set_int(att, val);
+}
+
+void
+alarm_event_set_attr_time(alarm_event_t *self, const char *name, time_t val)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+  alarm_attr_set_time(att, val);
+}
+
+void
+alarm_event_set_attr_string(alarm_event_t *self, const char *name, const char *val)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+  alarm_attr_set_string(att, val);
+}
+
+int
+alarm_event_get_attr_int(alarm_event_t *self, const char *name, int def)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+
+  return att ? alarm_attr_get_int(att) : def;
+}
+
+time_t
+alarm_event_get_attr_time(alarm_event_t *self, const char *name, time_t def)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+  return att ? alarm_attr_get_time(att) : def;
+}
+
+const char *
+alarm_event_get_attr_string(alarm_event_t *self, const char *name, const char *def)
+{
+  alarm_attr_t *att = alarm_event_add_attr(self, name);
+  return att ? alarm_attr_get_string(att) : def;
+}
+
+int
+alarm_event_is_recurring(const alarm_event_t *self)
+{
+  return (self->recur_count != 0) && ((self->recur_secs > 0) ||
+                                      (self->recurrence_cnt > 0));
 }

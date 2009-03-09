@@ -1,0 +1,122 @@
+.TH "ALARMCLIENT" "1" "Oct 2008" "Nokia Alarm Daemon" "User Commands"
+.SH NAME
+alarmclient \- alarmd test & debugging tool
+.SH SYNOPSIS
+alarmclient <options>
+.SH DESCRIPTION
+Can be used to add, remove, list and monitor alarm events
+.br
+held in alarmd queue.
+.SH OPTIONS
+\-h               \-\- this help text
+.br
+\-a[event_data]   \-\-  add event
+.br
+\-A[event_data]   \-\-  add event + show added event
+.br
+\-d[cookie]       \-\-  delete event
+.br
+\-g[cookie]       \-\-  get event
+.br
+\-l               \-\-  list cookies
+.br
+\-L               \-\-  list events
+.br
+\-c               \-\-  clear all events
+.br
+\-s               \-\-  get default snooze
+.br
+\-S[seconds]      \-\-  set default snooze
+.br
+\-b[action_data]  \-\-  add button/action
+.br
+\-D[dbus_data]    \-\-  add dbus data to action
+.br
+\-n[event_data]   \-\-  add event with actions
+.br
+\-t               \-\-  get system vs clockd time diff
+.br
+\-T[seconds]      \-\-  set system vs clockd time diff
+.br
+\-x               \-\-  start dbus service & track events
+.SH EXAMPLES
+alarmclient \\
+.br
+   \-b label=Snooze,flags=TYPE_SNOOZE+WHEN_RESPONDED \\
+.br
+   \-b label=Stop,flags=TYPE_DBUS+WHEN_RESPONDED,\\
+.br
+   dbus_service=com.foo.bar,dbus_path=/com/foo/bar,\\
+.br
+   dbus_name=stop_clicked \\
+.br
+   \-Dint32:124 \-Dstring:hello \\
+.br
+   \-n title=\'Two Button Alarm\',message=\'Hello there\',\\
+.br
+   alarm_time=20
+.br
+
+.br
+  Adds basic two button alarm with Stop and Snooze actions,
+.br
+  triggered 20 seconds from now, where pressing stop will
+.br
+  send dbus message with two arguments to session bus
+.br
+
+.br
+  Note: copypasting the above example will not work without
+.br
+        removing leading whitespace
+.br
+
+.br
+alarmclient \-x \-Aalarm_time=10
+.br
+
+.br
+  Starts dbus service. Adds \'calendar\'\-style alarm with
+.br
+  dbus callbacks and prints out event details. Then
+.br
+  follows status of the alarm itself using the action
+.br
+  callbacks. Also tracks presence of alarmd and listens
+.br
+  to alarm queue status signals.
+.SH EVENT DATA
+Comma separated list of alarm_event_t member names
+.br
+with suitable data, for example:
+.br
+  alarm_time=20,title=MyTitle,flags=BOOT+SHOW_ICON
+.br
+
+.br
+Note: if event.cookie is set, alarmclient will use
+.br
+      alarmd_event_update() instead of alarmd_event_add()
+.SH ACTION DATA
+Comma separated list of alarm_action_t member names
+.br
+with suitable data, for example:
+.br
+  label=Snooze,flags=TYPE_SNOOZE+WHEN_RESPONDED
+.SH DBUS DATA
+Type specifier + \':\' + suitable data for type, examples:
+.br
+  bool:True
+.br
+  int32:42
+.br
+  double:12.34
+.br
+  string:Hello
+.br
+
+.br
+Note: If type specifier is omitted, guess between int32,
+.br
+      double and string is made.
+.br

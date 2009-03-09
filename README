@@ -266,13 +266,13 @@ be powered off during this time, it will be started up. Snooze interval is 5
 minutes and the alarm causes an icon to be shown in the status bar.
 
 alarm_event_t event = {
-	.alarm_time = time(NULL) + 10 * 60,
-	.recurrence = 0,
-	.snooze = 5,
-	.message = "foo",
-	.sound = "/foo.mp3",
-	.icon = "foo",
-	.flags = ALARM_EVENT_SHOW_ICON | ALARM_EVENT_BOOT
+        .alarm_time = time(NULL) + 10 * 60,
+        .recurrence = 0,
+        .snooze = 5,
+        .message = "foo",
+        .sound = "/foo.mp3",
+        .icon = "foo",
+        .flags = ALARM_EVENT_SHOW_ICON | ALARM_EVENT_BOOT
 };
 alarm_event_add(&event);
 
@@ -286,18 +286,18 @@ argument to the call.
 
 const char *argument = "asdf";
 alarm_event_t event = {
-	.alarm_time = time(NULL) + 10 * 60,
-	.recurrence = 10,
-	.recurrence_count = -1,
-	.dbus_interface = "com.nokia.foo",
-	.dbus_service = "com.nokia.foo",
-	.dbus_path = "/com/nokia/foo",
-	.dbus_name = "bar",
-	.flags = ALARM_EVENT_NO_DIALOG
+        .alarm_time = time(NULL) + 10 * 60,
+        .recurrence = 10,
+        .recurrence_count = -1,
+        .dbus_interface = "com.nokia.foo",
+        .dbus_service = "com.nokia.foo",
+        .dbus_path = "/com/nokia/foo",
+        .dbus_name = "bar",
+        .flags = ALARM_EVENT_NO_DIALOG
 };
 alarm_event_add_with_dbus_params(&event,
-		DBUS_TYPE_STRING, &argument,
-		DBUS_TYPE_INVALID);
+                DBUS_TYPE_STRING, &argument,
+                DBUS_TYPE_INVALID);
 
 ==== C API Example 3 ====
 
@@ -305,73 +305,68 @@ Queries all events within 5 minutes, that need the power up funcionality, but
 do not require connection.
 
 cookie_t *events = alarm_event_query(time(NULL), time(NULL) + 5 * 60,
-				     ALARM_EVENT_BOOT | ALARM_EVENT_CONNECTED,
-				     ALARM_EVENT_BOOT);
+                                     ALARM_EVENT_BOOT | ALARM_EVENT_CONNECTED,
+                                     ALARM_EVENT_BOOT);
 
 === C API header ===
 
 typedef long cookie_t;
 
 typedef enum {
-	ALARM_EVENT_NO_DIALOG = 1 << 0,	/* Do not show the alarm dialog */
-	ALARM_EVENT_NO_SNOOZE = 1 << 1,	/* Disable the snooze button */
-	ALARM_EVENT_SYSTEM = 1 << 2,	/* Use the DBus system bus */
-	ALARM_EVENT_BOOT = 1 << 3,	/* Boot up the system */
-	ALARM_EVENT_ACTDEAD = 1 << 4,	/* Boot into alarm mode */
-	ALARM_EVENT_SHOW_ICON = 1 << 5, /* Show alarm icon on statusbar */
-	ALARM_EVENT_RUN_DELAYED = 1 << 6, /* Should the alarm be run on
-					     startup if missed. */
-	ALARM_EVENT_CONNECTED = 1 << 7, /* Run only when connected. */
-	ALARM_EVENT_ACTIVATION = 1 << 8, /* Should DBus call use activation. */
-	ALARM_EVENT_POSTPONE_DELAYED = 1 << 9, /* Should the alarm be postponed
-						  if missed. */
-	ALARM_EVENT_BACK_RESCHEDULE = 1 << 10, /* Should the event be moved
-						  backwards, if time is changed
+        ALARM_EVENT_NO_DIALOG = 1 << 0, /* Do not show the alarm dialog */
+        ALARM_EVENT_NO_SNOOZE = 1 << 1, /* Disable the snooze button */
+        ALARM_EVENT_SYSTEM = 1 << 2,    /* Use the DBus system bus */
+        ALARM_EVENT_BOOT = 1 << 3,      /* Boot up the system */
+        ALARM_EVENT_ACTDEAD = 1 << 4,   /* Boot into alarm mode */
+        ALARM_EVENT_SHOW_ICON = 1 << 5, /* Show alarm icon on statusbar */
+        ALARM_EVENT_RUN_DELAYED = 1 << 6, /* Should the alarm be run on
+                                             startup if missed. */
+        ALARM_EVENT_CONNECTED = 1 << 7, /* Run only when connected. */
+        ALARM_EVENT_ACTIVATION = 1 << 8, /* Should DBus call use activation. */
+        ALARM_EVENT_POSTPONE_DELAYED = 1 << 9, /* Should the alarm be postponed
+                                                  if missed. */
+        ALARM_EVENT_BACK_RESCHEDULE = 1 << 10, /* Should the event be moved
+                                                  backwards, if time is changed
                                                   backwards. */
 } alarmeventflags;
 
 typedef struct {
-	time_t alarm_time;		/* Time of alarm; UTC */
-	uint32_t recurrence;		/* Number of minutes between
-					 * each recurrence;
-					 * 0 for one-shot alarms
-					 */
-	int32_t recurrence_count;	/* Number of recurrences, use -1 for
-       					   infinite. */
-	uint32_t snooze;		/* Number of minutes an alarm is
-					 * potstponed on snooze. 0 for
-					 * default */
-	char *message;			/* Alarm message to display */
-	char *sound;			/* Alarm sound to play */
-	char *icon;			/* Alarm icon to use */
-	char *dbus_interface;		/* DBus callback: interface */
-	char *dbus_service;		/* DBus callback: service
-					 * set to NULL to send a signal
-					 */
-	char *dbus_path;		/* DBus callback: path */
-	char *dbus_name;		/* DBus callback: method_call/signal */
-	char *exec_name;		/* File callback: file to execute */
-	int32_t flags;			/* Event specific behaviour */
+        time_t alarm_time;              /* Time of alarm; UTC */
+        uint32_t recurrence;            /* Number of minutes between
+                                         * each recurrence;
+                                         * 0 for one-shot alarms
+                                         */
+        int32_t recurrence_count;       /* Number of recurrences, use -1 for
+                                           infinite. */
+        uint32_t snooze;                /* Number of minutes an alarm is
+                                         * potstponed on snooze. 0 for
+                                         * default */
+        char *message;                  /* Alarm message to display */
+        char *sound;                    /* Alarm sound to play */
+        char *icon;                     /* Alarm icon to use */
+        char *dbus_interface;           /* DBus callback: interface */
+        char *dbus_service;             /* DBus callback: service
+                                         * set to NULL to send a signal
+                                         */
+        char *dbus_path;                /* DBus callback: path */
+        char *dbus_name;                /* DBus callback: method_call/signal */
+        char *exec_name;                /* File callback: file to execute */
+        int32_t flags;                  /* Event specific behaviour */
 
-	uint32_t snoozed;		/* How much the event has been
-					   snoozed. */
+        uint32_t snoozed;               /* How much the event has been
+                                           snoozed. */
 } alarm_event_t;
 
 cookie_t alarm_event_add(alarm_event_t *event);
 cookie_t alarm_event_add_with_dbus_params(alarm_event_t *event,
-		int first_arg_type, ...);
+                int first_arg_type, ...);
 
 int alarm_event_del(cookie_t event_cookie);
 cookie_t *alarm_event_query(const time_t first, const time_t last,
-		int32_t flag_mask, int32_t flags);
+                int32_t flag_mask, int32_t flags);
 alarm_event_t *alarm_event_get(cookie_t event_cookie);
 void alarm_event_free(alarm_event_t *event);
 
 == License ==
 
 Copyright (C) 2006 Nokia Corporation.
-
-This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
-conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.
-

@@ -1,0 +1,422 @@
+action.o: action.c \
+  libalarm.h \
+  serialize.h \
+  xutil.h
+
+action.pic.o: action.c \
+  libalarm.h \
+  serialize.h \
+  xutil.h
+
+alarmclient.o: alarmclient.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+alarmclient.pic.o: alarmclient.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+alarmd.o: alarmd.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  logging.h \
+  mainloop.h \
+  xutil.h
+
+alarmd.pic.o: alarmd.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  logging.h \
+  mainloop.h \
+  xutil.h
+
+alarmtool.o: alarmtool.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+alarmtool.pic.o: alarmtool.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+attr.o: attr.c \
+  libalarm.h \
+  xutil.h
+
+attr.pic.o: attr.c \
+  libalarm.h \
+  xutil.h
+
+client.o: client.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  serialize.h
+
+client.pic.o: client.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  serialize.h
+
+codec.o: codec.c \
+  codec.h \
+  libalarm.h \
+  logging.h
+
+codec.pic.o: codec.c \
+  codec.h \
+  libalarm.h \
+  logging.h
+
+dbusif.o: dbusif.c \
+  codec.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h
+
+dbusif.pic.o: dbusif.c \
+  codec.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h
+
+escape.o: escape.c \
+  escape.h
+
+escape.pic.o: escape.c \
+  escape.h
+
+event.o: event.c \
+  libalarm.h \
+  logging.h \
+  ticker.h \
+  xutil.h
+
+event.pic.o: event.c \
+  libalarm.h \
+  logging.h \
+  ticker.h \
+  xutil.h
+
+fakedsme.o: fakedsme.c \
+  alarm_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h
+
+fakedsme.pic.o: fakedsme.c \
+  alarm_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h
+
+fakesb.o: fakesb.c \
+  logging.h \
+  missing_dbus.h
+
+fakesb.pic.o: fakesb.c \
+  logging.h \
+  missing_dbus.h
+
+fakeui.o: fakeui.c \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  systemui_dbus.h \
+  xutil.h
+
+fakeui.pic.o: fakeui.c \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  systemui_dbus.h \
+  xutil.h
+
+hwrtc.o: hwrtc.c \
+  hwrtc.h \
+  logging.h
+
+hwrtc.pic.o: hwrtc.c \
+  hwrtc.h \
+  logging.h
+
+inifile.o: inifile.c \
+  escape.h \
+  inifile.h \
+  logging.h \
+  symtab.h \
+  unique.h \
+  xutil.h
+
+inifile.pic.o: inifile.c \
+  escape.h \
+  inifile.h \
+  logging.h \
+  symtab.h \
+  unique.h \
+  xutil.h
+
+ipc_dsme.o: ipc_dsme.c \
+  dbusif.h \
+  ipc_dsme.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h
+
+ipc_dsme.pic.o: ipc_dsme.c \
+  dbusif.h \
+  ipc_dsme.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h
+
+ipc_exec.o: ipc_exec.c \
+  ipc_exec.h \
+  logging.h
+
+ipc_exec.pic.o: ipc_exec.c \
+  ipc_exec.h \
+  logging.h
+
+ipc_icd.o: ipc_icd.c \
+  ipc_icd.h \
+  logging.h
+
+ipc_icd.pic.o: ipc_icd.c \
+  ipc_icd.h \
+  logging.h
+
+ipc_statusbar.o: ipc_statusbar.c \
+  dbusif.h \
+  ipc_statusbar.h \
+  libalarm.h
+
+ipc_statusbar.pic.o: ipc_statusbar.c \
+  dbusif.h \
+  ipc_statusbar.h \
+  libalarm.h
+
+ipc_systemui.o: ipc_systemui.c \
+  dbusif.h \
+  ipc_systemui.h \
+  libalarm.h \
+  logging.h \
+  systemui_dbus.h
+
+ipc_systemui.pic.o: ipc_systemui.c \
+  dbusif.h \
+  ipc_systemui.h \
+  libalarm.h \
+  logging.h \
+  systemui_dbus.h
+
+logging.o: logging.c \
+  logging.h
+
+logging.pic.o: logging.c \
+  logging.h
+
+mainloop.o: mainloop.c \
+  hwrtc.h \
+  libalarm.h \
+  logging.h \
+  mainloop.h \
+  queue.h \
+  server.h \
+  sighnd.h \
+  states.inc
+
+mainloop.pic.o: mainloop.c \
+  hwrtc.h \
+  libalarm.h \
+  logging.h \
+  mainloop.h \
+  queue.h \
+  server.h \
+  sighnd.h \
+  states.inc
+
+philippe.o: philippe.c
+
+philippe.pic.o: philippe.c
+
+queue.o: queue.c \
+  alarmd_config.h \
+  inifile.h \
+  libalarm.h \
+  logging.h \
+  queue.h \
+  states.inc \
+  symtab.h \
+  ticker.h \
+  xutil.h
+
+queue.pic.o: queue.c \
+  alarmd_config.h \
+  inifile.h \
+  libalarm.h \
+  logging.h \
+  queue.h \
+  states.inc \
+  symtab.h \
+  ticker.h \
+  xutil.h
+
+quicktest.o: quicktest.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+quicktest.pic.o: quicktest.c \
+  alarm_dbus.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  strbuf.h \
+  ticker.h
+
+recurrence.o: recurrence.c \
+  libalarm.h \
+  ticker.h
+
+recurrence.pic.o: recurrence.c \
+  libalarm.h \
+  ticker.h
+
+serialize.o: serialize.c \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  serialize.h \
+  strbuf.h \
+  xutil.h
+
+serialize.pic.o: serialize.c \
+  dbusif.h \
+  libalarm.h \
+  logging.h \
+  serialize.h \
+  strbuf.h \
+  xutil.h
+
+server.o: server.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  hwrtc.h \
+  ipc_exec.h \
+  ipc_icd.h \
+  ipc_statusbar.h \
+  ipc_systemui.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h \
+  queue.h \
+  serialize.h \
+  server.h \
+  states.inc \
+  systemui_dbus.h \
+  ticker.h \
+  xutil.h
+
+server.pic.o: server.c \
+  alarm_dbus.h \
+  alarmd_config.h \
+  clockd_dbus.grep \
+  clockd_dbus.h \
+  dbusif.h \
+  hwrtc.h \
+  ipc_exec.h \
+  ipc_icd.h \
+  ipc_statusbar.h \
+  ipc_systemui.h \
+  libalarm.h \
+  logging.h \
+  missing_dbus.h \
+  queue.h \
+  serialize.h \
+  server.h \
+  states.inc \
+  systemui_dbus.h \
+  ticker.h \
+  xutil.h
+
+sighnd.o: sighnd.c \
+  logging.h \
+  mainloop.h \
+  sighnd.h
+
+sighnd.pic.o: sighnd.c \
+  logging.h \
+  mainloop.h \
+  sighnd.h
+
+strbuf.o: strbuf.c \
+  logging.h \
+  strbuf.h
+
+strbuf.pic.o: strbuf.c \
+  logging.h \
+  strbuf.h
+
+symtab.o: symtab.c \
+  symtab.h
+
+symtab.pic.o: symtab.c \
+  symtab.h
+
+ticker.o: ticker.c \
+  logging.h \
+  ticker.h \
+  ticker.inc
+
+ticker.pic.o: ticker.c \
+  logging.h \
+  ticker.h \
+  ticker.inc
+
+unique.o: unique.c \
+  unique.h
+
+unique.pic.o: unique.c \
+  unique.h
+

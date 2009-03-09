@@ -1,9 +1,0 @@
-includedir=@INCLUDEDIR@
-libdir=@LIBDIR@
-
-Name: libalarm
-Description: Alarm API.
-Version: @VERSION@
-
-Libs: -L${libdir} -lalarm
-Cflags: -I${includedir}

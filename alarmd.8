@@ -1,0 +1,66 @@
+.TH "ALARMD" "8" "Oct 2008" "Nokia Alarm Daemon" "System Administration Commands"
+.SH NAME
+alarmd \- alarm daemon
+.SH SYNOPSIS
+alarmd [options]
+.br
+
+.br
+or
+.br
+
+.br
+/etc/init.d/alarmd start|stop|restart
+.SH DESCRIPTION
+Alarm daemon manages queue of alarm events, executes
+.br
+actions defined in events either automatically or
+.br
+after user input via system ui dialog service.
+.SH OPTIONS
+\-h          \-\-  this help output
+.br
+\-d          \-\-  run as daemon
+.br
+\-l <target> \-\-  where log is written:
+.br
+                 * stderr
+.br
+                 * tmpfile
+.br
+                 * syslog
+.br
+                 * dummy
+.br
+\-L <level>  \-\-  set verbosity of logging:
+.br
+                 * EMERG
+.br
+                 * ALERT
+.br
+                 * CRIT
+.br
+                 * ERR
+.br
+                 * WARNING
+.br
+                 * NOTICE
+.br
+                 * INFO
+.br
+                 * DEBUG
+.SH EXAMPLES
+/etc/init.d/alarmd stop
+.br
+alarmd \-lstderr \-Ldebug
+.br
+
+.br
+  Stop alarmd service and restart with full debug log
+.br
+  written to stderr
+.SH NOTES
+The <target> and <level> names are case insensitive
+.SH SEE ALSO
+alarmclient
+.br
