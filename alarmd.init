@@ -1,4 +1,29 @@
 #! /bin/sh
+
+# ============================================================================
+#
+#  This file is part of Alarmd
+#
+#  Copyright (C) 2008-2009 Nokia Corporation and/or its subsidiary(-ies).
+#
+#  Contact: Simo Piiroinen <simo.piiroinen@nokia.com>
+#
+#  Alarmd is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public License
+#  version 2.1 as published by the Free Software Foundation.
+#
+#  Alarmd is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public
+#  License along with Alarmd; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+#  02110-1301 USA
+#
+# ============================================================================
+
 ### BEGIN INIT INFO
 # Provides:             alarmd
 # Required-Start:       $remote_fs $syslog dbus clockd
@@ -9,94 +34,32 @@
 # Description:          This init script starts the alarm daemon software
 #                       used on the maemo platform.
 ### END INIT INFO
-#
-# Startup script for the alarmd.
-#
-# Contact Person: Simo Piiroinen <simo.piiroinen@nokia.com>
-#
-# Copyright (C) 2008 Nokia Corporation.
-#
-# This is free software; see /usr/share/common-licenses/LGPL-2.1 for license
-# conditions.  There is NO  warranty;  not even for MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=@SBINDIR@/alarmd
+DAEMON=@SBINDIR@/alarmd.wrapper
 NAME=alarmd
 DESC="Alarm Daemon"
 INITFILE=/etc/init.d/$NAME
 DSMETOOL=/usr/sbin/dsmetool
-DAEMON_OPTS=""
+DAEMON_OPTS=
+
+# abort if simple command fails
+set -e
 
 # abort if no executable exists
 test -x $DAEMON
 
-# Include alarmd defaults if available
-if [ -f /etc/alarmd/alarmd-settings.default ] ; then
-  echo "Setting defaults..."
-    . /etc/alarmd/alarmd-settings.default
-fi
-
-set -e
-
 # only use dsmetool if it exists
 test -x $DSMETOOL || USE_DSMETOOL="no"
 
-if [ -e /etc/osso-af-init/af-defines.sh ]
-then
-  . /etc/osso-af-init/af-defines.sh
-else
-  echo "/etc/osso-af-init/af-defines.sh: not found!"
-  #exit 1
-fi
-
-for i in /etc/osso-af-init/*.defs; do
-  if [ -f $i ]; then
-    . $i
-  else
-    echo "$i: not found!"
-  fi
-done
-
-kill_old_daemons()
-{
-  # get rid of old daemons that were
-  # - installed at /usr/bin
-  # - executed without dsmetool
-  # and no, killall will not do - sigh
-
-  for cmd in $(grep -l ^/usr/bin/alarmd /proc/[1-9]*/cmdline); do
-   dir=$(dirname  $cmd)
-   pid=$(basename $dir)
-   case $(readlink $dir/exe) in
-     /usr/bin/alarmd*)
-       echo "Killing old alarmd: pid=$pid"
-       kill -TERM $pid
-       sleep 3
-       if [ -d $dir ]; then
-         kill -KILL $pid
-       	 sleep 3
-       fi
-       ;;
-   esac
-  done
-}
-
 start_alarmd()
 {
-  # already installed initscripts are unable to deal with
-  # alarmd started directly from xsession.d scripts ...
-  kill_old_daemons
-
-  # Start the daemon
   if [ -h /targets/links/scratchbox.config ]; then
-    echo "SCRATCHBOX: you need to start $DAEMON using run-standalone.sh"
+    echo "SCRATCHBOX: you need to start $DAEMON manually"
   elif [ "$USE_DSMETOOL" = "no" ]; then
-      run-standalone.sh \
-      start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
+    start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
   else
-      run-standalone.sh \
-      dsmetool -U user -G users -f "$DAEMON $DAEMON_OPTS"
+    $DSMETOOL -U user -G users -f $DAEMON
   fi
 }
 
@@ -107,11 +70,9 @@ stop_alarmd()
   elif [ "$USE_DSMETOOL" = "no" ]; then
     start-stop-daemon --stop --oknodo --quiet --exec $DAEMON
   else
-    dsmetool -k "$DAEMON $DAEMON_OPTS"
+    $DSMETOOL -U user -G users -k $DAEMON
   fi
 }
-
-set -e
 
 case "$1" in
   start)

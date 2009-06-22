@@ -1,3 +1,85 @@
+alarmd (1.1.8) unstable; urgency=low
+
+  * Helper functions for making asynchronous alarmd dbus method calls.
+  * Logging fixes.
+  * Minor cleanup.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Mon, 22 Jun 2009 11:21:34 +0300
+
+alarmd (1.1.7) unstable; urgency=low
+
+  * Unsafe signal handlers fixed.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Thu, 04 Jun 2009 09:01:03 +0300
+
+alarmd (1.1.6) unstable; urgency=low
+
+  * Fixes: NB#115838 - Added Xsession script that will restart alarmd
+    if execution of the startup wizard causes session bus restart.
+  * Hides deleted but not finalized alarms from clients.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Thu, 14 May 2009 15:52:24 +0300
+
+alarmd (1.1.5) unstable; urgency=low
+
+  * Improvements to systemui ipc: if multiple alarm_open/alarm_close method
+    calls are made in row, all but the last will set the high bit in the
+    cookie. This allows systemui to delay making costly widget changes until
+    all changes are received.
+  * Short delay is introduced between queue modifying method calls and
+    triggering of alarm event state transitions. This improves the
+    responsiveness of the system in cases where clients are making multiple
+    consecutive alarm add/update/delete calls over dbus.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Thu, 23 Apr 2009 11:12:44 +0300
+
+alarmd (1.1.4) unstable; urgency=low
+
+  * Fixed potential queue corruption in trigger time re-evaluation when
+    the system clock is moved backwards.
+  * Fixed handling of adding new recurrence and action table items so that
+    alarmd_event_update() no longer causes sanity check warnings.
+  * New debugging feature added to alarmclient: the desktop ready condition
+    (and use of LIMBO state) can now be controlled using  options -Xnolimbo
+    and -Xlimbo.
+  * Added get/set functions for alarm event cookies and trigger time.
+  * Logging toned down a bit.
+  * Fixes: NB#111210 - Snooze uses previous trigger time + snooze time
+    instead of current time + snooze time
+  * Startup scripts cleaned up.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Fri, 17 Apr 2009 14:13:05 +0300
+
+alarmd (1.1.3) unstable; urgency=low
+
+  * Fixed: Actions with ALARM_ACTION_WHEN_DELAYED were not executed.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Thu, 02 Apr 2009 12:29:06 +0300
+
+alarmd (1.1.2) unstable; urgency=low
+
+  * Fixes: NB#108013 - Alarm scheduling is one hour off if there is
+    DST change between current time and the requested alarm time.
+  * Alarmclient can now issue state change requests to dsme and
+    simulate pressing buttons on alarm dialogs.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Tue, 31 Mar 2009 09:33:35 +0300
+
+alarmd (1.1.1) unstable; urgency=low
+
+  * Separate Xsession scripts for act dead and user modes.
+  * Added D-Bus System bus configuration
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Tue, 24 Mar 2009 11:57:00 +0200
+
+alarmd (1.1.0) unstable; urgency=low
+
+  * Alarmd license changed to LGPL Version 2.1.
+  * DSME D-Bus constants now from libdsme0.2.0-dev.
+  * Fixed restoring attribute data from queue file.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Wed, 18 Mar 2009 10:18:43 +0200
+
 alarmd (1.0.13) unstable; urgency=low
 
   * Uses claiming of com.nokia.HildonDesktop.Home service on
@@ -69,9 +151,9 @@ alarmd (1.0.7) unstable; urgency=low
 
   * Alarmd starts earlier to be included in acting dead
   * Added feature: auto-disable missed alarms
-  * Added feature: diable alarms from dialog response
+  * Added feature: disable alarms from dialog response
   * Trigger time evaluation fixes
-  * Triggering order changed for alarms occuring simultaemously
+  * Triggering order changed for alarms occurring simultaneously
   * Improved clockd date/time/tz control with alarmclient
   * Added alarmd dbus defs to libalarm-dev
   * Documentation updated.
@@ -145,10 +227,10 @@ alarmd (1.0.2) unstable; urgency=low
   * Tracks timezone changes from clockd
   * Reschedules recurring alarms on clock change
   * System ui simulator uses different dbus service name
-  * Alarmd logging level can be adjusted from commandline
+  * Alarmd logging level can be adjusted from command line
   * Alarms defined using broken down time without timezone
     will be rescheduled on timezone change
-  * All dymamic members of api structures have get/set methods
+  * All dynamic members of api structures have get/set methods
   * API Documentation updated
 
  -- Simo Piiroinen <simo.piiroinen@nokia.com>  Mon, 22 Sep 2008 15:10:24 +0300

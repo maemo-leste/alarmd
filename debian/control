@@ -9,6 +9,7 @@ Build-Depends: debhelper (>= 4.1.0),
  libglib2.0-dev,
  libconic0-dev,
  osso-systemui-dbus-dev,
+ libdsme0.2.0-dev,
  mce-dev,
  statusbar-alarm-dev,
  doxygen
@@ -17,6 +18,8 @@ Standards-Version: 3.7.2
 Package: alarmd
 Architecture: any
 Depends: ${shlibs:Depends}
+Recommends: osso-systemui-alarm
+Conflicts: osso-systemui-alarm (<< 0.2.1.5)
 Description: alarm daemon
  Alarm daemon manages queue of alarm events, executes
  actions defined in events either automatically or
@@ -72,6 +75,6 @@ Description: development files for libalarm2
 Package: libalarm-doc
 Section: doc
 Architecture: all
-Depends: 
+Depends:
 Description: documentation files for libalarm2
  Doxygen generated API documentation for libalarm2.
