@@ -1,3 +1,23 @@
+alarmd (1.1.11) unstable; urgency=low
+
+  * Fixes: NB#139693 - Alarmd stops notifying applications after a switch
+    in the internet connection.
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Mon, 21 Sep 2009 08:28:16 +0300
+
+alarmd (1.1.10) unstable; urgency=low
+
+  * Fixes: NB#137820 - Really bad performance when calendar alarm comes up on
+    power up
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Thu, 17 Sep 2009 09:47:34 +0300
+
+alarmd (1.1.9) unstable; urgency=low
+
+  * Fixes: NB#129316 - Syncd is spamming console when synchronization is ongoing
+
+ -- Simo Piiroinen <simo.piiroinen@nokia.com>  Tue, 18 Aug 2009 09:28:21 +0300
+
 alarmd (1.1.8) unstable; urgency=low
 
   * Helper functions for making asynchronous alarmd dbus method calls.

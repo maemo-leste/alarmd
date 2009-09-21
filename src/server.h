@@ -29,6 +29,19 @@
 extern "C" {
 # endif
 
+  enum
+  {
+    DESKTOP_WAIT_DISABLED,
+    DESKTOP_WAIT_HOME,
+    DESKTOP_WAIT_HILDON,  // HOME +  8 secs
+    DESKTOP_WAIT_STARTUP, // HOME + 29 secs
+
+    DESKTOP_WAIT_NUMOF // must be the last item
+  };
+
+  void server_limbo_set_control(int mode);
+  void server_limbo_set_timeout(int secs);
+
   int  server_init(void);
   void server_quit(void);
 

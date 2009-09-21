@@ -47,6 +47,7 @@ static const char *LGPL =
 
 #include "logging.h"
 #include "mainloop.h"
+#include "server.h"
 #include "xutil.h"
 
 #include <glib-object.h>
@@ -205,9 +206,16 @@ static void show_usage(void)
     printf("                   * %s\n", targets[i]);
   }
 
-  printf("  -L <level>. --log-level=<level>\n"
+  printf("  -w <state>, --limbo-control=<state>\n"
+         "      Desktop ready control, valid states:\n"
+         "                   * disabled\n"
+         "                   * home\n"
+         "                   * hildon\n"
+         "                   * startup\n"
+         "  -t <seconds>, --limbo-timeout=<seconds>\n"
+         "      Disable limbo if ready signals are not after home ready.\n"
+         "  -L <level>. --log-level=<level>\n"
          "      Set logging verbosity, valid levels::\n");
-
   for( int i = 0; levels[i]; ++i )
   {
     printf("                   * %s\n", levels[i]);
@@ -248,20 +256,27 @@ static void show_usage(void)
   xfreev(levels);
 }
 
+static int cmp_flag(const char *input, const char *flag_name)
+{
+  return !strncasecmp(flag_name, input, strlen(input));
+}
+
 int
 main(int argc, char **argv)
 {
-  static const char opt_s[] = "hVdl:L:X:";
+  static const char opt_s[] = "hVdl:L:X:w:t:";
 
   static const struct option opt_l[] =
   {
-    {"help",       0, 0, 'h'},
-    {"usage",      0, 0, 'h'},
-    {"version",    0, 0, 'V'},
-    {"daemon",     0, 0, 'd'},
-    {"log-level",  1, 0, 'L'},
-    {"log-target", 1, 0, 'l'},
-    {0,            0, 0,  0 }
+    {"help",          0, 0, 'h'},
+    {"usage",         0, 0, 'h'},
+    {"version",       0, 0, 'V'},
+    {"daemon",        0, 0, 'd'},
+    {"log-level",     1, 0, 'L'},
+    {"log-target",    1, 0, 'l'},
+    {"limbo-control", 1, 0, 'w'},
+    {"limbo-timeout", 1, 0, 't'},
+    {0,               0, 0,  0 }
   };
 
   int log_driver = LOG_TO_SYSLOG;
@@ -273,7 +288,7 @@ main(int argc, char **argv)
 
   if( access("/root/alarmd.verbose", F_OK) == 0 )
   {
-    log_driver = LOG_TO_STDERR;
+    //log_driver = LOG_TO_STDERR;
     log_level  = LOG_DEBUG;
   }
 
@@ -301,6 +316,32 @@ main(int argc, char **argv)
 
     case 'd':
       opt_daemon = 1;
+      break;
+    case 't':
+      server_limbo_set_timeout(strtol(optarg,0,0));
+      break;
+
+    case 'w':
+      if( cmp_flag(optarg, "disabled") )
+      {
+        server_limbo_set_control(DESKTOP_WAIT_DISABLED);
+      }
+      else if( cmp_flag(optarg, "home") )
+      {
+        server_limbo_set_control(DESKTOP_WAIT_HOME);
+      }
+      else if( cmp_flag(optarg, "hildon") )
+      {
+        server_limbo_set_control(DESKTOP_WAIT_HOME);
+      }
+      else if( cmp_flag(optarg, "startup") )
+      {
+        server_limbo_set_control(DESKTOP_WAIT_HOME);
+      }
+      else
+      {
+        server_limbo_set_control(strtol(optarg,0,0));
+      }
       break;
 
     case 'X':

@@ -1155,7 +1155,17 @@ queue_load_from_path(const char *path)
         queue_event_set_state(e, ALARM_STATE_NEW);
         break;
       }
+
+#if 0 // disabled: rejecting events on load might cause regression
+      if( alarm_event_is_sane(e) != -1 )
+      {
+        queue_add_event(e), e = 0;
+      }
+      alarm_event_delete(e);
+#else
+      //alarm_event_is_sane(e);
       queue_add_event(e);
+#endif
     }
   }
 

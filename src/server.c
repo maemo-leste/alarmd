@@ -213,12 +213,13 @@ static DBusConnection *server_system_bus  = NULL;
  * D-Bus signal masks
  * ========================================================================= */
 
-// FIXME: is this in some include file?
-#define DESKTOP_SERVICE "com.nokia.HildonDesktop.Home"
-
 // FIXME: these are bound to have standard defs somewhere
 #define DBUS_NAME_OWNER_CHANGED "NameOwnerChanged"
 #define DBUS_NAME_ACQUIRED      "NameAcquired"
+
+/* ------------------------------------------------------------------------- *
+ * clock applet  --  clock alarm status signalled when service is available
+ * ------------------------------------------------------------------------- */
 
 #define MATCH_STATUSAREA_CLOCK_OWNERCHANGED\
   "type='signal'"\
@@ -228,6 +229,10 @@ static DBusConnection *server_system_bus  = NULL;
   ",member='"DBUS_NAME_OWNER_CHANGED"'"\
   ",arg0='"STATUSAREA_CLOCK_SERVICE"'"
 
+/* ------------------------------------------------------------------------- *
+ * systemui  --  alarm dialogs can be shown when system ui is up
+ * ------------------------------------------------------------------------- */
+
 #define MATCH_SYSTEMUI_OWNER_CHANGED\
   "type='signal'"\
   /*",sender='"DBUS_SERVICE_DBUS"'"*/\
@@ -236,21 +241,116 @@ static DBusConnection *server_system_bus  = NULL;
   ",member='"DBUS_NAME_OWNER_CHANGED"'"\
   ",arg0='"SYSTEMUI_SERVICE"'"
 
-#if 0 // dsme does dbus things differently
-# define MATCH_DSME_OWNER_CHANGED\
+/* ------------------------------------------------------------------------- *
+ * hildon home  --  used for enabling alarm dialogs
+ * see also: server_limbo_set_control(DESKTOP_WAIT_HOME)
+ * ------------------------------------------------------------------------- */
+
+// FIXME: is this available in some include file?
+#define HOME_SERVICE "com.nokia.HildonDesktop.Home"
+
+#define MATCH_HOME_OWNER_CHANGED\
+  "type='signal'"\
+  ",interface='"DBUS_INTERFACE_DBUS"'"\
+  ",path='"DBUS_PATH_DBUS"'"\
+  ",member='"DBUS_NAME_OWNER_CHANGED"'"\
+  ",arg0='"HOME_SERVICE"'"
+
+/* ------------------------------------------------------------------------- *
+ * desktop signal from /etc/X11/Xsession.post/21hildon-desktop-wait
+ * see also: server_limbo_set_control(DESKTOP_WAIT_HILDON)
+ * ------------------------------------------------------------------------- */
+
+#define HILDON_SIG_IF     "com.nokia.HildonDesktop"
+#define HILDON_SIG_PATH   "/com/nokia/HildonDesktop/ready"
+#define HILDON_SIG_READY  "ready"
+
+#define MATCH_HILDON_SIGNAL \
+  "type='signal'"\
+  ",interface='"HILDON_SIG_IF"'"\
+  ",path='"HILDON_SIG_PATH"'"\
+  ",member='"HILDON_SIG_READY"'"
+
+/* ------------------------------------------------------------------------- *
+ * startup signal from /etc/X11/Xsession.post/99initdone
+ * see also: server_limbo_set_control(DESKTOP_WAIT_STARTUP)
+ * ------------------------------------------------------------------------- */
+
+#define STARTUP_SIG_IF        "com.nokia.startup.signal"
+#define STARTUP_SIG_PATH      "/com/nokia/startup/signal"
+#define STARTUP_SIG_INIT_DONE "init_done"
+
+#define MATCH_STARTUP_SIGNAL \
+  "type='signal'"\
+  ",interface='"STARTUP_SIG_IF"'"\
+  ",path='"STARTUP_SIG_PATH"'"\
+  ",member='"STARTUP_SIG_INIT_DONE"'"
+
+/* ------------------------------------------------------------------------- *
+ * mce  --  track ownership and rebroadcast queue status when mce comes up
+ * ------------------------------------------------------------------------- */
+
+#define MATCH_MCE_OWNER_CHANGED\
   "type='signal'"\
   /*",sender='"DBUS_SERVICE_DBUS"'"*/\
   ",interface='"DBUS_INTERFACE_DBUS"'"\
   ",path='"DBUS_PATH_DBUS"'"\
   ",member='"DBUS_NAME_OWNER_CHANGED"'"\
-  ",arg0='"DSME_SERVICE"'"
+  ",arg0='"MCE_SERVICE"'"
 
-# define MATCH_DSME_SIGNALS \
+/* ------------------------------------------------------------------------- *
+ * clockd  --  use libtime interface only when clockd is up
+ * ------------------------------------------------------------------------- */
+
+#if HAVE_LIBTIME
+
+#define MATCH_CLOCKD_OWNER_CHANGED\
   "type='signal'"\
-  /*",sender='"DSME_SERVICE"'"*/\
-  ",interface='"DSME_SIGNAL_IF"'"\
-  ",path='"DSME_SIGNAL_PATH"'"
+  /*",sender='"DBUS_SERVICE_DBUS"'"*/\
+  ",interface='"DBUS_INTERFACE_DBUS"'"\
+  ",path='"DBUS_PATH_DBUS"'"\
+  ",member='"DBUS_NAME_OWNER_CHANGED"'"\
+  ",arg0='"CLOCKD_SERVICE"'"
+
+#define MATCH_CLOCKD_TIME_CHANGED\
+  "type='signal'"\
+  /*",sender='"CLOCKD_SERVICE"'"*/\
+  ",interface='"CLOCKD_INTERFACE"'"\
+  ",path='"CLOCKD_PATH"'"\
+  ",member='"CLOCKD_TIME_CHANGED"'"
+
+#endif /* HAVE_LIBTIME */
+
+/* ------------------------------------------------------------------------- *
+ * session bus signals to watch
+ * ------------------------------------------------------------------------- */
+
+static const char * const sessionbus_signals[] =
+{
+  MATCH_HOME_OWNER_CHANGED,
+  MATCH_STATUSAREA_CLOCK_OWNERCHANGED,
+  0
+};
+
+/* ------------------------------------------------------------------------- *
+ * system bus signals to watch
+ * ------------------------------------------------------------------------- */
+
+static const char * const systembus_signals[] =
+{
+  MATCH_STARTUP_SIGNAL,
+  MATCH_HILDON_SIGNAL,
+
+  MATCH_SYSTEMUI_OWNER_CHANGED,
+
+  MATCH_MCE_OWNER_CHANGED,
+
+#if HAVE_LIBTIME
+  MATCH_CLOCKD_OWNER_CHANGED,
+  MATCH_CLOCKD_TIME_CHANGED,
 #endif
+  0
+};
 
 /* ------------------------------------------------------------------------- *
  * server_get_dsme_signal_matches  --  get dsme signal matches as str array
@@ -296,60 +396,6 @@ static char **server_get_dsme_signal_matches(void)
 
   return result;
 }
-
-#define MATCH_MCE_OWNER_CHANGED\
-  "type='signal'"\
-  /*",sender='"DBUS_SERVICE_DBUS"'"*/\
-  ",interface='"DBUS_INTERFACE_DBUS"'"\
-  ",path='"DBUS_PATH_DBUS"'"\
-  ",member='"DBUS_NAME_OWNER_CHANGED"'"\
-  ",arg0='"MCE_SERVICE"'"
-
-#if HAVE_LIBTIME
-
-#define MATCH_CLOCKD_OWNER_CHANGED\
-  "type='signal'"\
-  /*",sender='"DBUS_SERVICE_DBUS"'"*/\
-  ",interface='"DBUS_INTERFACE_DBUS"'"\
-  ",path='"DBUS_PATH_DBUS"'"\
-  ",member='"DBUS_NAME_OWNER_CHANGED"'"\
-  ",arg0='"CLOCKD_SERVICE"'"
-
-#define MATCH_CLOCKD_TIME_CHANGED\
-  "type='signal'"\
-  /*",sender='"CLOCKD_SERVICE"'"*/\
-  ",interface='"CLOCKD_INTERFACE"'"\
-  ",path='"CLOCKD_PATH"'"\
-  ",member='"CLOCKD_TIME_CHANGED"'"
-
-#endif /* HAVE_LIBTIME */
-
-#define MATCH_DESKTOP_OWNER_CHANGED\
-  "type='signal'"\
-  ",interface='"DBUS_INTERFACE_DBUS"'"\
-  ",path='"DBUS_PATH_DBUS"'"\
-  ",member='"DBUS_NAME_OWNER_CHANGED"'"\
-  ",arg0='"DESKTOP_SERVICE"'"
-
-static const char * const sessionbus_signals[] =
-{
-  MATCH_DESKTOP_OWNER_CHANGED,
-  MATCH_STATUSAREA_CLOCK_OWNERCHANGED,
-  0
-};
-
-static const char * const systembus_signals[] =
-{
-  MATCH_SYSTEMUI_OWNER_CHANGED,
-
-  MATCH_MCE_OWNER_CHANGED,
-
-#if HAVE_LIBTIME
-  MATCH_CLOCKD_OWNER_CHANGED,
-  MATCH_CLOCKD_TIME_CHANGED,
-#endif
-  0
-};
 
 /* ========================================================================= *
  * Misc utilities
@@ -527,6 +573,10 @@ static unsigned server_state_fake = 0;
 
 static int server_icons_curr = 0; // alarms with statusbar icon flag
 static int server_icons_prev = 0;
+
+static int   server_limbo_wait_state  = DESKTOP_WAIT_STARTUP;
+static int   server_limbo_timeout_len = 60;
+static guint server_limbo_timeout_id  = 0;
 
 /* ------------------------------------------------------------------------- *
  * server_state_get
@@ -754,6 +804,88 @@ server_queuestate_sync(void)
 }
 
 /* ========================================================================= *
+ * Limbo State Control
+ * ========================================================================= */
+
+/* ------------------------------------------------------------------------- *
+ * server_limbo_set_timeout
+ * ------------------------------------------------------------------------- */
+
+void server_limbo_set_timeout(int secs)
+{
+  server_limbo_timeout_len = secs;
+}
+/* ------------------------------------------------------------------------- *
+ * server_limbo_set_control
+ * ------------------------------------------------------------------------- */
+
+void server_limbo_set_control(int mode)
+{
+  if( mode < 0 || mode >= DESKTOP_WAIT_NUMOF )
+  {
+    mode = DESKTOP_WAIT_DISABLED;
+  }
+  server_limbo_wait_state = mode;
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_limbo_disable
+ * ------------------------------------------------------------------------- */
+
+static void server_limbo_disable(const char *reason)
+{
+  // cancel delayed disabling
+  if( server_limbo_timeout_id != 0 )
+  {
+    g_source_remove(server_limbo_timeout_id);
+    server_limbo_timeout_id = 0;
+    log_debug("cancelling delayed LIMBO disable");
+  }
+
+  // disable limbo
+  if( !(server_state_get() & SF_DESKTOP_UP) )
+  {
+    log_debug("%s -> LIMBO disabled\n", reason);
+    server_state_set(0, SF_DESKTOP_UP);
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_limbo_disable_cb
+ * ------------------------------------------------------------------------- */
+
+static
+gboolean
+server_limbo_disable_cb(gpointer data)
+{
+  server_limbo_timeout_id = 0;
+
+  log_debug("================ DESKTOP READY TIMEOUT ================\n");
+  server_limbo_disable("desktop ready timeout");
+
+  return FALSE;
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_limbo_disable_delayed
+ * ------------------------------------------------------------------------- */
+
+static void server_limbo_disable_delayed(const char *reason)
+{
+  if( !(server_state_get() & SF_DESKTOP_UP) )
+  {
+    if( server_limbo_timeout_len > 0 && server_limbo_timeout_id == 0 )
+    {
+      log_debug("%s -> LIMBO timeout = %d seconds\n", reason,
+                server_limbo_timeout_len);
+      server_limbo_timeout_id = g_timeout_add_seconds(server_limbo_timeout_len,
+                                                      server_limbo_disable_cb,
+                                                      0);
+    }
+  }
+}
+
+/* ========================================================================= *
  * Server Time State
  * ========================================================================= */
 
@@ -880,9 +1012,15 @@ server_state_init(void)
     server_state_real |= SF_STATUSBAR_UP;
   }
 
-  if( dbusif_check_name_owner(server_session_bus, DESKTOP_SERVICE) == 0 )
+  if( server_limbo_wait_state == DESKTOP_WAIT_DISABLED )
   {
-    log_debug("desktop ready detected -> LIMBO disabled\n");
+    log_debug("desktop wait disabled -> LIMBO disabled\n");
+    server_state_real |= SF_DESKTOP_UP;
+  }
+
+  if( dbusif_check_name_owner(server_session_bus, HOME_SERVICE) == 0 )
+  {
+    log_debug("home ready detected -> LIMBO disabled\n");
     server_state_real |= SF_DESKTOP_UP;
   }
 
@@ -1742,8 +1880,8 @@ server_request_wakeup(time_t tmo)
       tmo -= now;
 
       //TODO: fix when g_timeout_add_seconds() is available
-      //server_wakeup_id = g_timeout_add_seconds(tmo, server_wakeup_start_cb, 0);
-      server_wakeup_id = g_timeout_add(tmo*1000, server_wakeup_start_cb, 0);
+      server_wakeup_id = g_timeout_add_seconds(tmo, server_wakeup_start_cb, 0);
+      //server_wakeup_id = g_timeout_add(tmo*1000, server_wakeup_start_cb, 0);
     }
   }
 }
@@ -3287,6 +3425,47 @@ server_handle_shutdown(DBusMessage *msg)
 }
 
 /* ------------------------------------------------------------------------- *
+ * server_handle_init_done
+ * ------------------------------------------------------------------------- */
+
+static
+DBusMessage *
+server_handle_init_done(DBusMessage *msg)
+{
+  DBusMessage   *rsp       = 0;
+
+  log_debug("================ INIT DONE SIGNAL ================\n");
+
+  // do it anyway ...
+  //if( server_limbo_wait_state == DESKTOP_WAIT_STARTUP )
+  {
+    server_limbo_disable("init done detected");
+  }
+
+  return rsp;
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_handle_hildon_ready
+ * ------------------------------------------------------------------------- */
+
+static
+DBusMessage *
+server_handle_hildon_ready(DBusMessage *msg)
+{
+  DBusMessage   *rsp       = 0;
+
+  log_debug("================ HILDON READY ================\n");
+
+  if( server_limbo_wait_state == DESKTOP_WAIT_HILDON )
+  {
+    server_limbo_disable("hildon ready detected");
+  }
+
+  return rsp;
+}
+
+/* ------------------------------------------------------------------------- *
  * server_handle_name_owner_chaned  --  handle dbus name owner changes
  * ------------------------------------------------------------------------- */
 
@@ -3323,8 +3502,7 @@ server_handle_name_owner_chaned(DBusMessage *msg)
         set |= SF_SYSTEMUI_UP;
       }
     }
-
-    if( !strcmp(service, CLOCKD_SERVICE) )
+    else if( !strcmp(service, CLOCKD_SERVICE) )
     {
       if( xisempty(new_owner) )
       {
@@ -3340,8 +3518,7 @@ server_handle_name_owner_chaned(DBusMessage *msg)
         ticker_use_libtime(TRUE);
       }
     }
-
-    if( !strcmp(service, DSME_SERVICE) )
+    else if( !strcmp(service, DSME_SERVICE) )
     {
       if( xisempty(new_owner) )
       {
@@ -3353,8 +3530,7 @@ server_handle_name_owner_chaned(DBusMessage *msg)
         set |= SF_DSME_UP;
       }
     }
-
-    if( !strcmp(service, MCE_SERVICE) )
+    else if( !strcmp(service, MCE_SERVICE) )
     {
       if( xisempty(new_owner) )
       {
@@ -3366,8 +3542,7 @@ server_handle_name_owner_chaned(DBusMessage *msg)
         set |= SF_MCE_UP;
       }
     }
-
-    if( !strcmp(service, STATUSAREA_CLOCK_SERVICE) )
+    else if( !strcmp(service, STATUSAREA_CLOCK_SERVICE) )
     {
       if( xisempty(new_owner) )
       {
@@ -3379,11 +3554,21 @@ server_handle_name_owner_chaned(DBusMessage *msg)
         set |= SF_STATUSBAR_UP;
       }
     }
-
-    if( !strcmp(service, DESKTOP_SERVICE) )
+    else if( !strcmp(service, HOME_SERVICE) )
     {
-      log_debug("desktop ready detected -> LIMBO disabled\n");
-      set |= SF_DESKTOP_UP;
+      if( !xisempty(new_owner) )
+      {
+        log_debug("================ HOME READY ================\n");
+
+        if( server_limbo_wait_state == DESKTOP_WAIT_HOME )
+        {
+          server_limbo_disable("home ready detected");
+        }
+        else
+        {
+          server_limbo_disable_delayed("home ready detected");
+        }
+      }
     }
 
     server_state_set(clr, set);
@@ -3574,6 +3759,17 @@ server_system_bus_cb(DBusConnection *conn, DBusMessage *msg, void *user_data)
     {0,}
   };
 
+  static const dbusif_method_lut startup_signals[] =
+  {
+    {STARTUP_SIG_INIT_DONE, server_handle_init_done},
+    {0,}
+  };
+  static const dbusif_method_lut hildon_signals[] =
+  {
+    {HILDON_SIG_READY, server_handle_hildon_ready},
+    {0,}
+  };
+
   static const dbusif_interface_lut filter[] =
   {
 #if ALARMD_ON_SYSTEM_BUS
@@ -3609,6 +3805,21 @@ server_system_bus_cb(DBusConnection *conn, DBusMessage *msg, void *user_data)
       DBUS_HANDLER_RESULT_NOT_YET_HANDLED
     },
 
+    {
+      STARTUP_SIG_IF,
+      STARTUP_SIG_PATH,
+      DBUS_MESSAGE_TYPE_SIGNAL,
+      startup_signals,
+      DBUS_HANDLER_RESULT_NOT_YET_HANDLED
+    },
+    {
+      HILDON_SIG_IF,
+      HILDON_SIG_PATH,
+      DBUS_MESSAGE_TYPE_SIGNAL,
+      hildon_signals,
+      DBUS_HANDLER_RESULT_NOT_YET_HANDLED
+    },
+
     { 0, }
   };
 
@@ -3630,14 +3841,14 @@ static
 void
 server_icd_status_cb(int connected)
 {
+  log_debug("internet connection: %s\n",
+            connected ? "available" : "not available");
   if( connected )
   {
-    log_debug("CON_IC_STATUS == CONNECTED\n");
     server_state_set(0, SF_CONNECTED);
   }
   else
   {
-    log_debug("CON_IC_STATUS != CONNECTED\n");
     server_state_set(SF_CONNECTED, 0);
   }
 }

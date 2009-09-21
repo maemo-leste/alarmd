@@ -24,52 +24,126 @@
 
 #include "ipc_icd.h"
 #include "logging.h"
+#include "symtab.h"
 
 #include <conic.h>
+
 #include <string.h>
+#include <stdlib.h>
 
 /* ========================================================================= *
  * Internet Connectivity Daemon Listener
  * ========================================================================= */
 
+// libconic connection object
 static gpointer ipc_icd_conn = NULL;
 
-static void (*ipc_icd_status)(int enabled) = 0;
+// callback pointer for forwarding internet connection status changes
+static void (*ipc_icd_status_cb)(int enabled) = 0;
+
+// for keeping track of all iap ids that are in connected state
+static symtab_t *ipc_icd_connstat_stab = 0;
+
+/* ------------------------------------------------------------------------- *
+ * iapid_del, iapid_cmp  --  symtab callbacks
+ * ------------------------------------------------------------------------- */
+
+static void iapid_del(void *item)
+{
+  free(item);
+}
+static int iapid_cmp(const void *item, const void *key)
+{
+  return !strcmp(item, key);
+}
+
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_connstat_rem_iap  --  mark iap disconnected
+ * ------------------------------------------------------------------------- */
+
+static void ipc_icd_connstat_rem_iap(const char *iap_id)
+{
+  if( ipc_icd_connstat_stab != 0 )
+  {
+    symtab_remove(ipc_icd_connstat_stab, iap_id);
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_connstat_add_iap  --  mark iap connected
+ * ------------------------------------------------------------------------- */
+
+static void
+ipc_icd_connstat_add_iap(const char *iap_id)
+{
+  if( ipc_icd_connstat_stab == 0 )
+  {
+    ipc_icd_connstat_stab = symtab_create(iapid_del, iapid_cmp);
+  }
+
+  if( !symtab_lookup(ipc_icd_connstat_stab, iap_id) )
+  {
+    symtab_append(ipc_icd_connstat_stab, strdup(iap_id));
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_connstat_is_connected  --  active connection on any iap
+ * ------------------------------------------------------------------------- */
+
+static int
+ipc_icd_connstat_is_connected(void)
+{
+  return ipc_icd_connstat_stab && ipc_icd_connstat_stab->st_count;
+}
+
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_event_callback
+ * ------------------------------------------------------------------------- */
 
 static
 void
 ipc_icd_event_callback(ConIcConnection *connection,
-                            ConIcConnectionEvent *event,
-                            void *user_data)
+                       ConIcConnectionEvent *event,
+                       void *user_data)
 {
   int connected = 0;
 
-  switch( con_ic_connection_event_get_status(event) )
+  if( con_ic_connection_event_get_status(event) == CON_IC_STATUS_CONNECTED )
   {
-  case CON_IC_STATUS_CONNECTED:
-    log_debug("CON_IC_STATUS == CONNECTED\n");
     connected = 1;
-    break;
-
-  default:
-    log_debug("CON_IC_STATUS != CONNECTED\n");
-    break;
   }
 
-  if( ipc_icd_status != 0 )
+  const gchar *iap_id = con_ic_event_get_iap_id(CON_IC_EVENT(event));
+  const gchar *bearer = con_ic_event_get_bearer_type(CON_IC_EVENT(event));
+
+  if( iap_id != 0 && bearer != 0 )
   {
-    ipc_icd_status(connected);
+    log_debug("conic event: %s - %s: %s\n",
+              iap_id, bearer, connected ? "connected" : "disconnected");
+
+    if( connected ) ipc_icd_connstat_add_iap(iap_id);
+    else            ipc_icd_connstat_rem_iap(iap_id);
+
+    if( ipc_icd_status_cb != 0 )
+    {
+      ipc_icd_status_cb(ipc_icd_connstat_is_connected());
+    }
   }
 }
 
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_set_automatic_connection_events
+ * ------------------------------------------------------------------------- */
+
 static
 void
-ipc_icd_tracking(int yes)
+ipc_icd_set_automatic_connection_events(int enabled)
 {
   GValue value;
   memset(&value, 0, sizeof value);
   g_value_init(&value, G_TYPE_BOOLEAN);
-  g_value_set_boolean(&value, (yes != 0));
+  g_value_set_boolean(&value, (enabled != 0));
 
   g_object_set_property(G_OBJECT(ipc_icd_conn),
                         "automatic-connection-events",
@@ -78,23 +152,34 @@ ipc_icd_tracking(int yes)
   g_value_unset(&value);
 }
 
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_quit
+ * ------------------------------------------------------------------------- */
+
 void
 ipc_icd_quit(void)
 {
   if( ipc_icd_conn != 0 )
   {
-    ipc_icd_tracking(FALSE);
+    ipc_icd_set_automatic_connection_events(FALSE);
     g_object_unref(ipc_icd_conn);
     ipc_icd_conn = 0;
   }
+
+  symtab_delete(ipc_icd_connstat_stab);
+  ipc_icd_connstat_stab = 0;
 }
+
+/* ------------------------------------------------------------------------- *
+ * ipc_icd_init
+ * ------------------------------------------------------------------------- */
 
 int
 ipc_icd_init(void (*status_cb)(int))
 {
   int error = 0;
 
-  ipc_icd_status = status_cb;
+  ipc_icd_status_cb = status_cb;
 
   if( ipc_icd_conn == 0 )
   {
@@ -105,7 +190,7 @@ ipc_icd_init(void (*status_cb)(int))
                      G_CALLBACK(ipc_icd_event_callback),
                      NULL);
 
-    ipc_icd_tracking(TRUE);
+    ipc_icd_set_automatic_connection_events(TRUE);
   }
   return error;
 }

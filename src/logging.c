@@ -179,7 +179,13 @@ static log_driver_t log_drivers[] =
   }
 };
 
+#if 01
+// default to stderr
 static log_driver_t *log_driver = log_drivers;
+#else
+// default to syslog
+static log_driver_t *log_driver = &log_drivers[2];
+#endif
 
 static void
 log_write(int pri, const char *fmt, va_list va)

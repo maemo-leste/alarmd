@@ -41,9 +41,10 @@
 
 #define CONF_PFIX   "/tmp/ticker."
 
-#define CONF_TIME   CONF_PFIX"time"
-#define CONF_FORMAT CONF_PFIX"format"
-#define CONF_ZONE   CONF_PFIX"timezone"
+#define CONF_TIME     CONF_PFIX"time"
+#define CONF_FORMAT   CONF_PFIX"format"
+#define CONF_ZONE     CONF_PFIX"timezone"
+#define CONF_AUTOSYNC CONF_PFIX"autosync"
 
 static const char *
 conf_get_str(const char *path, char *buff, size_t size, const char *def)
@@ -366,18 +367,16 @@ custom_get_time_diff(time_t tick, const char *tz1, const char *tz2)
 
 static
 int
-custom_set_autosync(int  enable)
+custom_set_autosync(int enable)
 {
-  abort(); // FIXME: unsupported custom_activate_net_time()
-  return -1;
+  return conf_set_int(CONF_AUTOSYNC, (enable != 0));
 }
 
 static
 int
 custom_get_autosync(void)
 {
-  abort(); // FIXME: unsupported custom_activate_net_time()
-  return -1;
+  return conf_get_int(CONF_AUTOSYNC) != 0;
 }
 
 static
@@ -554,12 +553,10 @@ int ticker_get_time_diff(time_t tick, const char *tz1, const char *tz2)
 }
 #endif
 
-#ifdef DEAD_CODE
 int ticker_set_autosync(int enable)
 {
   return ticker_driver->cb_set_autosync(enable);
 }
-#endif
 
 #ifdef DEAD_CODE
 int ticker_get_autosync(void)

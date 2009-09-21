@@ -41,7 +41,7 @@ NAME=alarmd
 DESC="Alarm Daemon"
 INITFILE=/etc/init.d/$NAME
 DSMETOOL=/usr/sbin/dsmetool
-DAEMON_OPTS=
+DAEMON_OPTS=""
 
 # abort if simple command fails
 set -e
@@ -59,7 +59,7 @@ start_alarmd()
   elif [ "$USE_DSMETOOL" = "no" ]; then
     start-stop-daemon --start --quiet --exec $DAEMON -- $DAEMON_OPTS
   else
-    $DSMETOOL -U user -G users -f $DAEMON
+    $DSMETOOL -U user -G users -f "$DAEMON $DAEMON_OPTS"
   fi
 }
 
@@ -70,7 +70,7 @@ stop_alarmd()
   elif [ "$USE_DSMETOOL" = "no" ]; then
     start-stop-daemon --stop --oknodo --quiet --exec $DAEMON
   else
-    $DSMETOOL -U user -G users -k $DAEMON
+    $DSMETOOL -U user -G users -k "$DAEMON $DAEMON_OPTS"
   fi
 }
 

@@ -735,10 +735,13 @@ alarm_event_is_sane(const alarm_event_t *event)
    * there are buttons too
    * - - - - - - - - - - - - - - - - - - - */
 
+#if 0
+  // disabled: empty messages are ok
   if( xisempty(event->message) && buttons != 0 )
   {
     W("message is empty, but there are button actions?\n");
   }
+#endif
 
   if( !xisempty(event->message) && buttons == 0 )
   {

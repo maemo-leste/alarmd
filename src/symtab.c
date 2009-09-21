@@ -52,7 +52,6 @@ symtab_lookup(symtab_t *self, const void *key)
  * symtab_remove
  * ------------------------------------------------------------------------- */
 
-#ifdef DEAD_CODE
 void
 symtab_remove(symtab_t *self, const void *key)
 {
@@ -74,7 +73,6 @@ symtab_remove(symtab_t *self, const void *key)
 
   self->st_count = di;
 }
-#endif
 
 /* ------------------------------------------------------------------------- *
  * symtab_append
@@ -138,7 +136,6 @@ symtab_dtor(symtab_t *self)
  * symtab_create
  * ------------------------------------------------------------------------- */
 
-#ifdef DEAD_CODE
 symtab_t *
 symtab_create(symtab_del_fn del, symtab_cmp_fn cmp)
 {
@@ -146,13 +143,11 @@ symtab_create(symtab_del_fn del, symtab_cmp_fn cmp)
   symtab_ctor(self, del, cmp);
   return self;
 }
-#endif
 
 /* ------------------------------------------------------------------------- *
  * symtab_delete
  * ------------------------------------------------------------------------- */
 
-#ifdef DEAD_CODE
 void
 symtab_delete(symtab_t *self)
 {
@@ -162,7 +157,6 @@ symtab_delete(symtab_t *self)
     free(self);
   }
 }
-#endif
 
 /* ------------------------------------------------------------------------- *
  * symtab_delete_cb

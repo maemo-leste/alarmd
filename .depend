@@ -41,6 +41,7 @@ src/alarmd.o: src/alarmd.c \
   src/alarmd_config.h \
   src/logging.h \
   src/mainloop.h \
+  src/server.h \
   src/xutil.h
 
 src/alarmd.pic.o: src/alarmd.c \
@@ -48,6 +49,7 @@ src/alarmd.pic.o: src/alarmd.c \
   src/alarmd_config.h \
   src/logging.h \
   src/mainloop.h \
+  src/server.h \
   src/xutil.h
 
 src/alarmtool.o: src/alarmtool.c \
@@ -184,11 +186,13 @@ src/ipc_exec.pic.o: src/ipc_exec.c \
 
 src/ipc_icd.o: src/ipc_icd.c \
   src/ipc_icd.h \
-  src/logging.h
+  src/logging.h \
+  src/symtab.h
 
 src/ipc_icd.pic.o: src/ipc_icd.c \
   src/ipc_icd.h \
-  src/logging.h
+  src/logging.h \
+  src/symtab.h
 
 src/ipc_statusbar.o: src/ipc_statusbar.c \
   src/dbusif.h \

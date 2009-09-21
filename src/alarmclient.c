@@ -141,6 +141,7 @@ alarmclient_print_usage(const char *progname)
          "  -C[seconds]      --  advance clockd time\n"
          "  -z               --  get current clockd timezone\n"
          "  -Z[timezone]     --  set current clockd timezone\n"
+         "  -N[enabled]      --  set cellular time autosync\n"
 
          "\n"
          "  Simulating alarms set by ui components:\n"
@@ -1405,7 +1406,22 @@ alarmclient_event_show(alarm_event_t *event)
       alarmclient_emitf("INT    %d\n", att->attr_data.ival);
       break;
     case ALARM_ATTR_TIME:
-      alarmclient_emitf("TIME   %s", ctime(&att->attr_data.tval));
+      if( att->attr_data.tval < 365 * 24 * 60 * 60 )
+      {
+        if( att->attr_data.tval > -365 * 24 * 60 * 60 )
+        {
+          alarmclient_emitf("TIME   %s\n",
+                            alarmclient_secs_format(0,0, att->attr_data.tval));
+        }
+        else
+        {
+          alarmclient_emitf("TIME   %+ld\n", (long)att->attr_data.tval);
+        }
+      }
+      else
+      {
+        alarmclient_emitf("TIME   %s", ctime(&att->attr_data.tval));
+      }
       break;
     case ALARM_ATTR_STRING:
       alarmclient_emitf("STRING '%s'\n", att->attr_data.sval);
@@ -2410,6 +2426,16 @@ alarmclient_handle_add_time(const char *args)
 }
 
 /* ------------------------------------------------------------------------- *
+ * alarmclient_handle_autosync
+ * ------------------------------------------------------------------------- */
+
+static void
+alarmclient_handle_autosync(const char *args)
+{
+  ticker_set_autosync(alarmclient_string_to_boolean(args));
+}
+
+/* ------------------------------------------------------------------------- *
  * alarmclient_dsme_request
  * ------------------------------------------------------------------------- */
 
@@ -2496,7 +2522,7 @@ cookie_t alarmclient_handle_special(const char *args)
   {
     alarmclient_setup_calendar_alarm(h,m,w, 0, arg);
   }
-  else if( inlist(tag, "shutdown\0powerdown\0halt\0") )
+  else if( inlist(tag, "shutdown\0powerdown\0poweroff\0halt\0") )
   {
     alarmclient_dsme_request('s');
   }
@@ -3201,7 +3227,7 @@ alarmclient_handle_add_trackable_event(char *args, int show)
 int
 main(int argc, char **argv)
 {
-  const char opt_s[] = "hliLg:d:cr:w:W:b:D:e:n:xa:A:sS:tT:C:Z:z_:%X:";
+  const char opt_s[] = "hliLg:d:cr:w:W:b:D:e:n:xa:A:sS:tT:C:Z:zN:_:%X:";
 
   static const struct option opt_l[] =
   {
@@ -3287,6 +3313,7 @@ main(int argc, char **argv)
     case 'C': alarmclient_handle_add_time(optarg); break;
     case 'T': alarmclient_handle_set_time(optarg); break;
     case 't': alarmclient_handle_show_time(); break;
+    case 'N': alarmclient_handle_autosync(optarg); break;
 
       // debugging known usecases
     case 'X': alarmclient_handle_special(optarg); break;

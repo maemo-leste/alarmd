@@ -26,6 +26,7 @@ Description: alarm daemon
  after user input via system ui dialog service.
 
 Package: alarmd-dbg
+Section: devel
 Priority: extra
 Architecture: any
 Depends: alarmd (= ${binary:Version})
@@ -40,6 +41,7 @@ Description: test tool for alarmd access
  Command line utility for testing and debugging alarmd features.
 
 Package: alarmclient-dbg
+Section: devel
 Priority: extra
 Architecture: any
 Depends: alarmclient (= ${binary:Version})
