@@ -1,3 +1,10 @@
+alarmd (1.1.11+0m5) unstable; urgency=low
+
+  * This entry has been added by BIFH queue processor
+    Suffix +0m5 added to package revision
+
+ -- Swert De <philippe.de-swert@nokia.com>  Mon, 21 Sep 2009 15:34:23 +0300
+
 alarmd (1.1.11) unstable; urgency=low
 
   * Fixes: NB#139693 - Alarmd stops notifying applications after a switch
