@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "libalarm.h"
 #include "ticker.h"
 #include "logging.h"

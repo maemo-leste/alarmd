@@ -1,15 +1,18 @@
 src/action.o: src/action.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/serialize.h \
   src/xutil.h
 
 src/action.pic.o: src/action.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/serialize.h \
   src/xutil.h
 
 src/alarmclient.o: src/alarmclient.c \
   src/alarm_dbus.h \
+  src/alarmd_config.h \
   src/clockd_dbus.h \
   src/clockd_dbus.inc \
   src/dbusif.h \
@@ -24,6 +27,7 @@ src/alarmclient.o: src/alarmclient.c \
 
 src/alarmclient.pic.o: src/alarmclient.c \
   src/alarm_dbus.h \
+  src/alarmd_config.h \
   src/clockd_dbus.h \
   src/clockd_dbus.inc \
   src/dbusif.h \
@@ -54,6 +58,7 @@ src/alarmd.pic.o: src/alarmd.c \
 
 src/alarmtool.o: src/alarmtool.c \
   src/alarm_dbus.h \
+  src/alarmd_config.h \
   src/clockd_dbus.h \
   src/clockd_dbus.inc \
   src/dbusif.h \
@@ -64,6 +69,7 @@ src/alarmtool.o: src/alarmtool.c \
 
 src/alarmtool.pic.o: src/alarmtool.c \
   src/alarm_dbus.h \
+  src/alarmd_config.h \
   src/clockd_dbus.h \
   src/clockd_dbus.inc \
   src/dbusif.h \
@@ -73,10 +79,12 @@ src/alarmtool.pic.o: src/alarmtool.c \
   src/ticker.h
 
 src/attr.o: src/attr.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/xutil.h
 
 src/attr.pic.o: src/attr.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/xutil.h
 
@@ -99,54 +107,65 @@ src/client.pic.o: src/client.c \
   src/serialize.h
 
 src/codec.o: src/codec.c \
+  src/alarmd_config.h \
   src/codec.h \
   src/libalarm.h \
   src/logging.h
 
 src/codec.pic.o: src/codec.c \
+  src/alarmd_config.h \
   src/codec.h \
   src/libalarm.h \
   src/logging.h
 
 src/dbusif.o: src/dbusif.c \
+  src/alarmd_config.h \
   src/codec.h \
   src/dbusif.h \
   src/libalarm.h \
   src/logging.h
 
 src/dbusif.pic.o: src/dbusif.c \
+  src/alarmd_config.h \
   src/codec.h \
   src/dbusif.h \
   src/libalarm.h \
   src/logging.h
 
 src/escape.o: src/escape.c \
+  src/alarmd_config.h \
   src/escape.h
 
 src/escape.pic.o: src/escape.c \
+  src/alarmd_config.h \
   src/escape.h
 
 src/event.o: src/event.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/logging.h \
   src/ticker.h \
   src/xutil.h
 
 src/event.pic.o: src/event.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/logging.h \
   src/ticker.h \
   src/xutil.h
 
 src/hwrtc.o: src/hwrtc.c \
+  src/alarmd_config.h \
   src/hwrtc.h \
   src/logging.h
 
 src/hwrtc.pic.o: src/hwrtc.c \
+  src/alarmd_config.h \
   src/hwrtc.h \
   src/logging.h
 
 src/inifile.o: src/inifile.c \
+  src/alarmd_config.h \
   src/escape.h \
   src/inifile.h \
   src/logging.h \
@@ -155,6 +174,7 @@ src/inifile.o: src/inifile.c \
   src/xutil.h
 
 src/inifile.pic.o: src/inifile.c \
+  src/alarmd_config.h \
   src/escape.h \
   src/inifile.h \
   src/logging.h \
@@ -163,6 +183,7 @@ src/inifile.pic.o: src/inifile.c \
   src/xutil.h
 
 src/ipc_dsme.o: src/ipc_dsme.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_dsme.h \
   src/libalarm.h \
@@ -170,6 +191,7 @@ src/ipc_dsme.o: src/ipc_dsme.c \
   src/missing_dbus.h
 
 src/ipc_dsme.pic.o: src/ipc_dsme.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_dsme.h \
   src/libalarm.h \
@@ -177,34 +199,41 @@ src/ipc_dsme.pic.o: src/ipc_dsme.c \
   src/missing_dbus.h
 
 src/ipc_exec.o: src/ipc_exec.c \
+  src/alarmd_config.h \
   src/ipc_exec.h \
   src/logging.h
 
 src/ipc_exec.pic.o: src/ipc_exec.c \
+  src/alarmd_config.h \
   src/ipc_exec.h \
   src/logging.h
 
 src/ipc_icd.o: src/ipc_icd.c \
+  src/alarmd_config.h \
   src/ipc_icd.h \
   src/logging.h \
   src/symtab.h
 
 src/ipc_icd.pic.o: src/ipc_icd.c \
+  src/alarmd_config.h \
   src/ipc_icd.h \
   src/logging.h \
   src/symtab.h
 
 src/ipc_statusbar.o: src/ipc_statusbar.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_statusbar.h \
   src/libalarm.h
 
 src/ipc_statusbar.pic.o: src/ipc_statusbar.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_statusbar.h \
   src/libalarm.h
 
 src/ipc_systemui.o: src/ipc_systemui.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_systemui.h \
   src/libalarm.h \
@@ -212,6 +241,7 @@ src/ipc_systemui.o: src/ipc_systemui.c \
   src/systemui_dbus.h
 
 src/ipc_systemui.pic.o: src/ipc_systemui.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/ipc_systemui.h \
   src/libalarm.h \
@@ -219,12 +249,17 @@ src/ipc_systemui.pic.o: src/ipc_systemui.c \
   src/systemui_dbus.h
 
 src/logging.o: src/logging.c \
-  src/logging.h
+  src/alarmd_config.h \
+  src/logging.h \
+  src/xutil.h
 
 src/logging.pic.o: src/logging.c \
-  src/logging.h
+  src/alarmd_config.h \
+  src/logging.h \
+  src/xutil.h
 
 src/mainloop.o: src/mainloop.c \
+  src/alarmd_config.h \
   src/hwrtc.h \
   src/libalarm.h \
   src/logging.h \
@@ -235,6 +270,7 @@ src/mainloop.o: src/mainloop.c \
   src/states.inc
 
 src/mainloop.pic.o: src/mainloop.c \
+  src/alarmd_config.h \
   src/hwrtc.h \
   src/libalarm.h \
   src/logging.h \
@@ -267,16 +303,19 @@ src/queue.pic.o: src/queue.c \
   src/xutil.h
 
 src/recurrence.o: src/recurrence.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/logging.h \
   src/ticker.h
 
 src/recurrence.pic.o: src/recurrence.c \
+  src/alarmd_config.h \
   src/libalarm.h \
   src/logging.h \
   src/ticker.h
 
 src/serialize.o: src/serialize.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/libalarm.h \
   src/logging.h \
@@ -285,6 +324,7 @@ src/serialize.o: src/serialize.c \
   src/xutil.h
 
 src/serialize.pic.o: src/serialize.c \
+  src/alarmd_config.h \
   src/dbusif.h \
   src/libalarm.h \
   src/logging.h \
@@ -341,50 +381,62 @@ src/server.pic.o: src/server.c \
   src/xutil.h
 
 src/sighnd.o: src/sighnd.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/mainloop.h \
   src/sighnd.h
 
 src/sighnd.pic.o: src/sighnd.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/mainloop.h \
   src/sighnd.h
 
 src/strbuf.o: src/strbuf.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/strbuf.h
 
 src/strbuf.pic.o: src/strbuf.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/strbuf.h
 
 src/symtab.o: src/symtab.c \
+  src/alarmd_config.h \
   src/symtab.h
 
 src/symtab.pic.o: src/symtab.c \
+  src/alarmd_config.h \
   src/symtab.h
 
 src/ticker.o: src/ticker.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/ticker.h \
   src/ticker.inc
 
 src/ticker.pic.o: src/ticker.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/ticker.h \
   src/ticker.inc
 
 src/unique.o: src/unique.c \
+  src/alarmd_config.h \
   src/unique.h
 
 src/unique.pic.o: src/unique.c \
+  src/alarmd_config.h \
   src/unique.h
 
 src/xutil.o: src/xutil.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/xutil.h
 
 src/xutil.pic.o: src/xutil.c \
+  src/alarmd_config.h \
   src/logging.h \
   src/xutil.h
 

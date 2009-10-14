@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "codec.h"
 
 #include "logging.h"

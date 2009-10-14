@@ -33,6 +33,48 @@ extern "C" {
 } /* fool JED indentation ... */
 #endif
 
+// Fixes: NB#141279 - Alarm not shown in UI after "snooze" value set
+//        to 0 in alarm_queue.ini
+#define FIX_BUG_141279 0 // ignore modified queue file
+
+/* ------------------------------------------------------------------------- *
+ * Alarmd monitors contents of the queue file. Nobody should have any need
+ * to touch that file - apart from osso-backup restoration process. What
+ * happens if the file is modified by somebody else than alarmd is configured
+ * here.
+ * ------------------------------------------------------------------------- */
+
+/* If non-zero, alarmd will give osso-backup some time to restart
+ * alarmd. If that does not happen, alarmd will self terminate and
+ * then gets restarted by dsme process lifeguard.
+ *
+ * This is the documented behavior, but odd things may happen if
+ * somebody else than osso-restore modifies the queue file.
+ */
+#if FIX_BUG_141279
+# define ALARMD_QUEUE_MODIFIED_RESTART 0
+#else
+# define ALARMD_QUEUE_MODIFIED_RESTART 1
+#endif
+
+/* If non-zero, alarmd will give osso-backup some time to restart
+ * alarmd. If that does not happen, alarmd will replace the modified
+ * queue file using internally held state information.
+ *
+ * Effectively this will make alarmd ignore all modifications made
+ * to the queue file unless followed by alarmd restart that is normally
+ * part of restore process.
+ */
+#if FIX_BUG_141279
+# define ALARMD_QUEUE_MODIFIED_IGNORE  1
+#else
+# define ALARMD_QUEUE_MODIFIED_IGNORE  0
+#endif
+
+/* ------------------------------------------------------------------------- *
+ * D-Bus connection configuration
+ * ------------------------------------------------------------------------- */
+
 #define ALARMD_USE_PRIVATE_BUS 0
 #define ALARMD_ON_SESSION_BUS  0
 #define ALARMD_ON_SYSTEM_BUS   1
@@ -40,6 +82,20 @@ extern "C" {
 #if !ALARMD_ON_SESSION_BUS == !ALARMD_ON_SYSTEM_BUS
 # error alrmd dbus configuration error
 #endif
+
+/* ------------------------------------------------------------------------- *
+ * Enabling special clear-user-data and restore-factory-settings code
+ * ------------------------------------------------------------------------- */
+
+/* Enable '-Xcud' command line option */
+#define ALARMD_CUD_ENABLE 1
+
+/* Enable '-Xrfs' command line option */
+#define ALARMD_RFS_ENABLE 1
+
+/* ------------------------------------------------------------------------- *
+ * Various flags originating from Makefile
+ * ------------------------------------------------------------------------- */
 
 #define ALARMD_CONFIG_NAME      "@NAME@"
 #define ALARMD_CONFIG_VERS      "@VERS@"
@@ -55,9 +111,9 @@ extern "C" {
 #define ALARMD_CONFIG_DEVDOCDIR "@DEVDOCDIR@"
 #define ALARMD_CONFIG_PKGCFGDIR "@PKGCFGDIR@"
 
-#define ALARMD_CUD_ENABLE 1
-#define ALARMD_RFS_ENABLE 1
-
+/* ------------------------------------------------------------------------- *
+ * Boot control in alarm event action flags. TODO: remove the whole thing
+ * ------------------------------------------------------------------------- */
 #define ALARMD_ACTION_BOOTFLAGS 0
 
 #ifdef __cplusplus

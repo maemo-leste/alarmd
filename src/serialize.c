@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "serialize.h"
 
 #include "dbusif.h"

@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "ipc_icd.h"
 #include "logging.h"
 #include "symtab.h"

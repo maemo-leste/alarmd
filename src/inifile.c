@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "inifile.h"
 
 #include "logging.h"

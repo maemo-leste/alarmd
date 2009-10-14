@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "mainloop.h"
 
 #include "logging.h"
@@ -40,7 +42,9 @@
 
 static GMainLoop  *mainloop_loop    = 0;
 
+#if ALARMD_QUEUE_MODIFIED_RESTART
 static guint       mainloop_exit_id = 0; // delayed exit identifier
+#endif
 
 /* ========================================================================= *
  * Module Functions
@@ -66,6 +70,7 @@ mainloop_stop(void)
   }
 }
 
+#if ALARMD_QUEUE_MODIFIED_RESTART
 /* ------------------------------------------------------------------------- *
  * mainloop_exit_cb
  * ------------------------------------------------------------------------- */
@@ -116,6 +121,7 @@ static void mainloop_exit_request(void)
     mainloop_exit_id = g_timeout_add(30 * 1000, mainloop_exit_cb, 0);
   }
 }
+#endif
 
 /* ------------------------------------------------------------------------- *
  * mainloop_run
@@ -144,7 +150,9 @@ mainloop_run(void)
    * register queuefile overwrite callback
    * - - - - - - - - - - - - - - - - - - - */
 
+#if ALARMD_QUEUE_MODIFIED_RESTART
   queue_set_modified_cb(mainloop_exit_request);
+#endif
 
   /* - - - - - - - - - - - - - - - - - - - *
    * initialize subsystems
@@ -186,7 +194,9 @@ mainloop_run(void)
 
   cleanup:
 
+#if ALARMD_QUEUE_MODIFIED_RESTART
   mainloop_exit_cancel();
+#endif
 
   server_quit();
   queue_quit();

@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "libalarm.h"
 
 #include "logging.h"
@@ -501,7 +503,7 @@ alarm_event_is_sane(const alarm_event_t *event)
     va_start(va, fmt);
     vasprintf(&msg, fmt, va);
     va_end(va);
-    log_error("%s: %s", function, msg);
+    log_error("%s: %s\n", function, msg);
     free(msg);
     err |= 2;
   }
@@ -512,8 +514,7 @@ alarm_event_is_sane(const alarm_event_t *event)
     va_start(va, fmt);
     vasprintf(&msg, fmt, va);
     va_end(va);
-    vasprintf(&msg, fmt, va);
-    log_warning("%s: %s", function, msg);
+    log_warning("%s: %s\n", function, msg);
     free(msg);
     err |= 1;
   }

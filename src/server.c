@@ -839,7 +839,7 @@ static void server_limbo_disable(const char *reason)
   {
     g_source_remove(server_limbo_timeout_id);
     server_limbo_timeout_id = 0;
-    log_debug("cancelling delayed LIMBO disable");
+    log_debug("cancelling delayed LIMBO disable\n");
   }
 
   // disable limbo
@@ -1651,11 +1651,9 @@ server_event_get_next_trigger(time_t t0, time_t t1, alarm_event_t *self)
       }
     }
   }
-
   if( t1 < t0 )
   {
-    t1 = -1;
-    log_debug_L("T1 = %d: %s", (int)t1, "REJECTED");
+    log_debug("next trigger is in past: T%+ld\n", (long)(t0-t1));
   }
 
   return t1;
@@ -1676,7 +1674,7 @@ server_event_evaluate_initial_trigger(alarm_event_t *self)
             ticker_secs_format(0,0,t0-t1),
             ticker_date_format_long(0,0,t1));
 
-  return (t1 >= t0) ? t1 : -1;
+  return t1;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -2741,10 +2739,7 @@ server_rethink_back_in_time(void)
 
           time_t trigger = server_event_evaluate_initial_trigger(eve);
 
-          if( trigger != -1 )
-          {
-            queue_event_set_trigger(eve, trigger);
-          }
+          queue_event_set_trigger(eve, trigger);
           queue_event_set_state(eve, ALARM_STATE_NEW);
         }
       }
@@ -3143,10 +3138,10 @@ server_handle_event_add(DBusMessage *msg)
 
     time_t trigger = server_event_evaluate_initial_trigger(event);
 
-    if( trigger != -1 )
+    time_t now = ticker_get_time();
+    if( trigger >= now )
     {
       alarm_event_set_trigger(event, trigger);
-
       if( (cookie = queue_add_event(event)) != 0 )
       {
         event = 0;
@@ -3196,10 +3191,10 @@ server_handle_event_update(DBusMessage *msg)
 
     time_t trigger = server_event_evaluate_initial_trigger(event);
 
-    if( trigger != -1 )
+    time_t now = ticker_get_time();
+    if( trigger >= now )
     {
       alarm_event_set_trigger(event, trigger);
-
       if( (cookie = queue_add_event(event)) != 0 )
       {
         event = 0;
@@ -3854,6 +3849,78 @@ server_icd_status_cb(int connected)
 }
 
 /* ========================================================================= *
+ * IGNORE MODIFIED QUEUE FILE UNLESS FOLLOWED BY ALARMD RESTART
+ * ========================================================================= */
+
+#if ALARMD_QUEUE_MODIFIED_IGNORE
+// timeout for ignoring modified queue file
+static guint server_queue_touched_restart_id = 0;
+
+/* ------------------------------------------------------------------------- *
+ * server_queue_touched_ignore_cb
+ * ------------------------------------------------------------------------- */
+
+static gboolean server_queue_touched_ignore_cb(gpointer aptr)
+{
+  log_critical("The queue file was modified without restarting the device.\n");
+  log_critical("Restoring queue file from internal state information.\n");
+
+  // do forced overwrite
+  queue_save_forced();
+
+  server_queue_touched_restart_id = 0;
+  return FALSE;
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_queue_touched_ignore_cancel
+ * ------------------------------------------------------------------------- */
+
+static void server_queue_touched_ignore_cancel(void)
+{
+  if( server_queue_touched_restart_id != 0 )
+  {
+    g_source_remove(server_queue_touched_restart_id);
+    server_queue_touched_restart_id = 0;
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_queue_touched_ignore_request
+ * ------------------------------------------------------------------------- */
+
+static void server_queue_touched_ignore_request(void)
+{
+  if( server_queue_touched_restart_id == 0 )
+  {
+    /* Usually the only reason we should see the queue file be
+     * modified by something else than alarmd itself should be
+     * osso-backup doing restore operation.
+     *
+     * Allow osso-backup some time to finish the restore operation
+     * and restart the device.
+     *
+     * If that is not happening we will terminate the alarmd process
+     * so that the queue status will be properly propagated to
+     * other components as the alarmd is restarted by dsme.
+     */
+
+    server_queue_touched_restart_id =
+      g_timeout_add_seconds(60, server_queue_touched_ignore_cb, 0);
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * server_queue_touched_ignore_setup
+ * ------------------------------------------------------------------------- */
+
+static void server_queue_touched_ignore_setup(void)
+{
+  queue_set_modified_cb(server_queue_touched_ignore_request);
+}
+#endif
+
+/* ========================================================================= *
  * SERVER INIT/QUIT
  * ========================================================================= */
 
@@ -4098,6 +4165,14 @@ server_init(void)
   }
 
   /* - - - - - - - - - - - - - - - - - - - *
+   * register queuefile overwrite callback
+   * - - - - - - - - - - - - - - - - - - - */
+
+#if ALARMD_QUEUE_MODIFIED_IGNORE
+  server_queue_touched_ignore_setup();
+#endif
+
+  /* - - - - - - - - - - - - - - - - - - - *
    * set the ball rolling
    * - - - - - - - - - - - - - - - - - - - */
 
@@ -4129,6 +4204,10 @@ server_init(void)
 void
 server_quit(void)
 {
+#if ALARMD_QUEUE_MODIFIED_IGNORE
+  server_queue_touched_ignore_cancel();
+#endif
+
   server_queue_cancel_save();
 
   ipc_icd_quit();

@@ -22,11 +22,14 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 /* Make sure we compile this module to support
  * all functionality that can be available */
 #undef  ENABLE_LOGGING
 #define ENABLE_LOGGING 3
 #include "logging.h"
+#include "xutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,6 +125,7 @@ stream_write(int priority, const char *fmt, va_list va)
 {
   const char *desc = "Unknown";
   FILE       *file = log_output ?: stderr;
+  char       *mesg = 0;
 
   switch( priority )
   {
@@ -134,9 +138,19 @@ stream_write(int priority, const char *fmt, va_list va)
   case LOG_INFO:    desc = "Info";     break;
   case LOG_DEBUG:   desc = "Debug";    break;
   }
-  fprintf(file, "%s[%d]: %s: ", log_identity, log_pid, desc);
-  vfprintf(file, fmt, va);
-  fflush(file);
+
+  vasprintf(&mesg, fmt, va);
+  if( mesg != 0 )
+  {
+    xstripall(mesg);
+    fprintf(file, "%s[%d]: %s: %s\n", log_identity, log_pid, desc, mesg);
+  }
+
+  free(mesg);
+
+// QUARANTINE   fprintf(file, "%s[%d]: %s: ", log_identity, log_pid, desc);
+// QUARANTINE   vfprintf(file, fmt, va);
+// QUARANTINE   fflush(file);
 }
 
 static void

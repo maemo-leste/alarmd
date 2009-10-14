@@ -52,6 +52,7 @@ int            queue_count_by_state   (unsigned state);
 void           queue_cleanup_deleted  (void);
 void           queue_save             (void);
 void           queue_load             (void);
+void           queue_save_forced      (void);
 void           queue_set_dirty        (void);
 void           queue_clr_dirty        (void);
 int            queue_is_dirty         (void);

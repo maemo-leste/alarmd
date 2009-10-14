@@ -44,6 +44,8 @@ static const char *LGPL =
 "  02110-1301 USA\n"
 ;
 
+#include "alarmd_config.h"
+
 #include "libalarm.h"
 #include "dbusif.h"
 #include "logging.h"
@@ -2159,6 +2161,25 @@ alarmclient_setup_clock_oneshot(int h, int m, int wd, int verbose, char *args)
   alarm_action_set_label(act, "Snooze");
 
   // trigger
+  if( h >= 0 && m >= 0 )
+  {
+    struct tm tm;
+    time_t t = time(0);
+    localtime_r(&t,&tm);
+
+    tm.tm_hour = h;
+    tm.tm_min  = m;
+
+    if( mktime(&tm) < t )
+    {
+      tm.tm_mday += 1;
+      mktime(&tm);
+    }
+
+    eve->alarm_tm.tm_year = tm.tm_year;
+    eve->alarm_tm.tm_mon  = tm.tm_mon;
+    eve->alarm_tm.tm_mday = tm.tm_mday;
+  }
   eve->alarm_tm.tm_hour = h;
   eve->alarm_tm.tm_min  = m;
   eve->alarm_tm.tm_wday = wd;

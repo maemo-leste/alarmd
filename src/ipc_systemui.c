@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "ipc_systemui.h"
 
 #include "logging.h"

@@ -561,6 +561,10 @@ queue_query_events(int *pcnt, time_t lo, time_t hi, unsigned mask, unsigned flag
   {
     hi = INT_MAX;
   }
+  if( lo <= 0 )
+  {
+    lo = INT_MIN;
+  }
 
   for( size_t i = queue_count; i--; )
   {
@@ -952,7 +956,7 @@ queue_load_from_path(const char *path)
 
   if( inifile_load(ini, path) == -1 )
   {
-    log_warning("%s: load failed", path);
+    log_warning("%s: load failed\n", path);
     goto cleanup;
   }
 
@@ -1176,11 +1180,12 @@ queue_load_from_path(const char *path)
 }
 
 /* ------------------------------------------------------------------------- *
- * queue_save
+ * queue_save_internal
  * ------------------------------------------------------------------------- */
 
+static
 void
-queue_save(void)
+queue_save_internal(int forced)
 {
   static int restored = 0;
 
@@ -1200,21 +1205,29 @@ queue_save(void)
    * signaling alarmd first ...
    * - - - - - - - - - - - - - - - - - - - */
 
-  if( restored != 0 )
+  if( forced != 0 )
   {
-    log_warning("queue save blocked while waiting for device restart\n");
-    goto cleanup;
+    restored = 0;
+    xfetchstats(QUEUE_DATABASE, &queue_save_stat);
   }
-
-  if( !xcheckstats(QUEUE_DATABASE, &queue_save_stat) )
+  else
   {
-    log_critical("ALARM DB CHANGED SINCE LAST SAVE"
-                 " - assuming restore from backup\n");
+    if( restored != 0 )
+    {
+      log_warning("queue save blocked while waiting for device restart\n");
+      goto cleanup;
+    }
 
-    restored = 1;
-    queue_indicate_modified();
+    if( !xcheckstats(QUEUE_DATABASE, &queue_save_stat) )
+    {
+      log_critical("ALARM DB CHANGED SINCE LAST SAVE"
+                   " - assuming restore from backup\n");
 
-    goto cleanup;
+      restored = 1;
+      queue_indicate_modified();
+
+      goto cleanup;
+    }
   }
 
   /* - - - - - - - - - - - - - - - - - - - *
@@ -1272,6 +1285,26 @@ queue_save(void)
   free(old_data);
   free(new_data);
 
+}
+
+/* ------------------------------------------------------------------------- *
+ * queue_save
+ * ------------------------------------------------------------------------- */
+
+void
+queue_save(void)
+{
+  queue_save_internal(0);
+}
+
+/* ------------------------------------------------------------------------- *
+ * queue_save_forced
+ * ------------------------------------------------------------------------- */
+
+void
+queue_save_forced(void)
+{
+  queue_save_internal(1);
 }
 
 /* ------------------------------------------------------------------------- *

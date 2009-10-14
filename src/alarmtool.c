@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "libalarm.h"
 #include "dbusif.h"
 #include "logging.h"

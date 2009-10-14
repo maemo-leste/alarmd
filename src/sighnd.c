@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "sighnd.h"
 #include "mainloop.h"
 #include "logging.h"
@@ -91,7 +93,8 @@ sighnd_handler(int sig)
   switch( sig )
   {
   case SIGUSR1:
-    log_reopen(LOG_TO_STDERR);
+    //log_reopen(LOG_TO_STDERR);
+    log_reopen(LOG_TO_SYSLOG);
     log_set_level(LOG_DEBUG);
     log_notice("LOGGING=VERBOSE\n");
     break;
@@ -215,7 +218,7 @@ sighnd_setup_callbacks(void)
   {
     if( signal(sighnd_trap[i], sighnd_pipe_tx_cb) == SIG_ERR )
     {
-      log_warning("could not install handler for signal %d - %s",
+      log_warning("could not install handler for signal %d - %s\n",
                   sighnd_trap[i], strsignal(sighnd_trap[i]));
       err = -1;
     }

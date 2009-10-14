@@ -698,7 +698,8 @@ normalize_files += osso-rfs-scripts/alarmd.sh.tpl
 normalize_files += osso-cud-scripts/alarmd.sh.tpl
 
 normalize:
-	crlf -a *.[ch] */*.[ch] *.py */*.py
+	crlf -a */*.[ch] */*.py
+	crlf -a src/*.tpl src/*.inc
 	crlf -M Makefile testing/Makefile debian/rules
 	crlf -t -e -k debian/changelog debian/control debian/copyright
 	crlf -a $(normalize_files)

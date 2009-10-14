@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "ipc_dsme.h"
 
 #include "dbusif.h"

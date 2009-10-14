@@ -22,6 +22,8 @@
  *
  * ========================================================================= */
 
+#include "alarmd_config.h"
+
 #include "libalarm.h"
 #include "xutil.h"
 #include "serialize.h"
