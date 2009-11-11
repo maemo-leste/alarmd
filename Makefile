@@ -133,8 +133,8 @@ TARGETS += libalarm.a
 TARGETS += libalarm$(SO)
 TARGETS += alarmd
 TARGETS += alarmclient
-TARGETS += alarmtool
 TARGETS += alarmd.wrapper
+#TARGETS += alarmtool
 
 FLOW_GRAPHS = $(foreach e,.png .pdf .eps,\
 		  $(addsuffix $e,$(addprefix $1,.fun .mod .api .top)))

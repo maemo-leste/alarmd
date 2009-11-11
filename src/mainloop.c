@@ -182,9 +182,9 @@ mainloop_run(void)
    * enter mainloop
    * - - - - - - - - - - - - - - - - - - - */
 
-  log_debug("-- enter mainloop --\n");
+  log_info("-- enter mainloop --\n");
   g_main_loop_run(mainloop_loop);
-  log_debug("-- leave mainloop --\n");
+  log_info("-- leave mainloop --\n");
 
   exit_code = EXIT_SUCCESS;
 

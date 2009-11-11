@@ -2868,26 +2868,24 @@ alarmclient_handle_list_events(int verbose)
 
       for( size_t i = 0; i < n; ++i )
       {
-        //struct tm tm;
         char date[128];
         char secs[128];
         char ident[256];
+        char stamp[256];
 
         time_t diff = now - event[i]->ALARMD_PRIVATE(trigger);
 
-        //ticker_get_local_ex(event[i]->ALARMD_PRIVATE(trigger), &tm);
         alarmclient_date_format_short(date, sizeof date, &event[i]->ALARMD_PRIVATE(trigger));
         alarmclient_secs_format(secs, sizeof secs, diff);
 
-        snprintf(ident, sizeof ident, "%.16s/%.16s/%s",
+        snprintf(ident, sizeof ident, "%s/%s/%s",
                  alarm_event_get_alarm_appid(event[i]),
                  alarm_event_get_title(event[i]),
                  alarm_event_get_message(event[i]));
 
-        alarmclient_emitf("[%03ld]  ", cookie[i]);
-        alarmclient_emitf("%-32s  ", ident);
-        alarmclient_emitf("%s (T%s)", date, secs);
-        alarmclient_emitf("\n");
+        snprintf(stamp, sizeof stamp, "%s (T%s)", date, secs);
+
+        alarmclient_emitf("[%03ld] %-36s %s\n", cookie[i], stamp, ident);
       }
     }
     else

@@ -60,111 +60,118 @@
  * Local prototypes
  * ========================================================================= */
 
-static void server_rethink_request(int delayed);
+static char              **server_get_dsme_signal_matches       (void);
+static char               *server_repr_tm                       (const struct tm *tm, const char *tz, char *buff, size_t size);
+static time_t              server_bump_time                     (time_t base, time_t skip, time_t target);
 
-#if 0
+static gboolean            server_queue_save_cb                 (gpointer data);
+static gboolean            server_queue_idle_cb                 (gpointer data);
+static void                server_queue_cancel_save             (void);
+static void                server_queue_request_save            (void);
+static void                server_queue_forced_save             (void);
 
-static char *      server_repr_tm(const struct tm *tm, const char *tz, char *buff, size_t size);
-static time_t      server_bump_time(time_t base, time_t skip, time_t target);
+static unsigned            server_state_get                     (void);
+static void                server_state_clr                     (unsigned clr);
+static void                server_state_set                     (unsigned clr, unsigned set);
 
-static gboolean server_queue_save_cb(gpointer data);
-static gboolean server_queue_idle_cb(gpointer data);
-static void     server_queue_cancel_save(void);
-static void     server_queue_request_save(void);
-static void     server_queue_forced_save(void);
+static void                server_queuestate_reset              (void);
+static void                server_queuestate_invalidate         (void);
+static void                server_queuestate_init               (void);
+static void                server_queuestate_sync               (void);
 
-static void server_queuestate_reset(void);
-static void server_queuestate_invalidate(void);
-static void server_queuestate_init(void);
-static void server_queuestate_sync(void);
+static void                server_limbo_disable                 (const char *reason);
+static gboolean            server_limbo_disable_cb              (gpointer data);
+static void                server_limbo_disable_delayed         (const char *reason);
 
-static void server_timestate_read(void);
-static void server_timestate_sync(void);
-static int  server_timestate_changed(void);
-static void server_timestate_init(void);
+static void                server_timestate_read                (void);
+static void                server_timestate_sync                (void);
+static int                 server_timestate_changed             (void);
+static void                server_timestate_init                (void);
 
-static unsigned server_state_get(void);
-static void     server_state_clr(unsigned clr);
-static void     server_state_set(unsigned clr, unsigned set);
-static void     server_state_init(void);
-static void     server_state_sync(void);
-static const char *server_state_get_systemui_service(void);
+static void                server_state_init                    (void);
+static void                server_state_sync                    (void);
+static const char         *server_state_get_systemui_service    (void);
 
-static unsigned server_action_get_type(alarm_action_t *action);
-static unsigned server_action_get_when(alarm_action_t *action);
-static int      server_action_do_snooze(alarm_event_t *event, alarm_action_t *action);
-static int      server_action_do_desktop(alarm_event_t *event, alarm_action_t *action);
-static int      server_action_do_actdead(alarm_event_t *event, alarm_action_t *action);
-static int      server_action_do_exec(alarm_event_t *event, alarm_action_t *action);
-static int      server_action_do_dbus(alarm_event_t *event, alarm_action_t *action);
-static int      server_action_do_all(alarm_event_t *event, alarm_action_t *action);
+static unsigned            server_action_get_type               (alarm_action_t *action);
+static unsigned            server_action_get_when               (alarm_action_t *action);
+static int                 server_action_do_snooze              (alarm_event_t *event, alarm_action_t *action);
+static int                 server_action_do_disable             (alarm_event_t *event, alarm_action_t *action);
+static int                 server_action_do_exec                (alarm_event_t *event, alarm_action_t *action);
+static int                 server_action_do_dbus                (alarm_event_t *event, alarm_action_t *action);
+static void                server_action_do_all                 (alarm_event_t *event, alarm_action_t *action);
 
-static void        server_event_do_state_actions(alarm_event_t *eve, unsigned when);
-static void        server_event_do_response_actions(alarm_event_t *eve);
-static const char *server_event_get_tz(alarm_event_t *self);
-static unsigned    server_event_get_boot_mask(alarm_event_t *eve);
-static time_t      server_event_get_snooze(alarm_event_t *eve);
-static int         server_event_is_snoozed(alarm_event_t *eve);
-static int         server_event_get_buttons(alarm_event_t *self, int *vec, int size);
-static time_t      server_event_get_next_trigger(time_t t0, time_t t1, alarm_event_t *self);
-static int         server_event_evaluate_initial_trigger(alarm_event_t *self);
+static void                server_event_do_state_actions        (alarm_event_t *eve, unsigned when);
+static void                server_event_do_response_actions     (alarm_event_t *eve);
+static const char         *server_event_get_tz                  (alarm_event_t *self);
+static unsigned            server_event_get_boot_mask           (alarm_event_t *eve);
+static time_t              server_event_get_snooze              (alarm_event_t *eve);
+static int                 server_event_is_snoozed              (alarm_event_t *eve);
+static int                 server_event_get_buttons             (alarm_event_t *self, int *vec, int size);
+static time_t              server_event_get_next_trigger        (time_t t0, time_t t1, alarm_event_t *self);
+static int                 server_event_evaluate_initial_trigger(alarm_event_t *self);
 
-static gboolean    server_clock_source_is_stable(void);
-static int         server_handle_systemui_ack(cookie_t *vec, int cnt);
-static void        server_systemui_ack_cb(dbus_int32_t *vec, int cnt);
-static int         server_handle_systemui_rsp(cookie_t cookie, int button);
+static time_t              server_clock_back_delta              (void);
+static time_t              server_clock_forw_delta              (void);
+static gboolean            server_clock_source_is_stable        (void);
 
-static void     server_rethink_new(void);
-static void     server_rethink_waitconn(void);
-static void     server_rethink_queued(void);
-static void     server_rethink_missed(void);
-static void     server_rethink_postponed(void);
-static void     server_rethink_triggered(void);
-static void     server_rethink_waitsysui(void);
-static void     server_rethink_sysui_req(void);
-static void     server_rethink_sysui_ack(void);
-static void     server_rethink_sysui_rsp(void);
-static void     server_rethink_snoozed(void);
-static void     server_rethink_served(void);
-static void     server_rethink_recurring(void);
-static void     server_rethink_deleted(void);
-static void     server_rethink_timezone(void);
-static void     server_rethink_back_in_time(void);
-static void     server_rethink_forw_in_time(void);
-static gboolean server_rethink_start_cb(gpointer data);
-static void     server_rethink_request(void);
+static gboolean            server_wakeup_start_cb               (gpointer data);
+static void                server_cancel_wakeup                 (void);
+static void                server_request_wakeup                (time_t tmo);
 
-static gboolean server_wakeup_start_cb(gpointer data);
-static void     server_cancel_wakeup(void);
-static void     server_request_wakeup(time_t tmo);
+static int                 server_handle_systemui_ack           (cookie_t *vec, int cnt);
+static void                server_systemui_ack_cb               (dbus_int32_t *vec, int cnt);
+static int                 server_handle_systemui_rsp           (cookie_t cookie, int button);
 
-static DBusMessage *server_handle_set_debug(DBusMessage *msg);
-static DBusMessage *server_handle_snooze_get(DBusMessage *msg);
-static DBusMessage *server_handle_snooze_set(DBusMessage *msg);
-static DBusMessage *server_handle_event_add(DBusMessage *msg);
-static DBusMessage *server_handle_event_update(DBusMessage *msg);
-static DBusMessage *server_handle_event_del(DBusMessage *msg);
-static DBusMessage *server_handle_event_query(DBusMessage *msg);
-static DBusMessage *server_handle_event_get(DBusMessage *msg);
-static DBusMessage *server_handle_event_ack(DBusMessage *msg);
-static DBusMessage *server_handle_queue_ack(DBusMessage *msg);
-static DBusMessage *server_handle_name_acquired(DBusMessage *msg);
-static DBusMessage *server_handle_save_data(DBusMessage *msg);
-static DBusMessage *server_handle_shutdown(DBusMessage *msg);
-static DBusMessage *server_handle_name_owner_chaned(DBusMessage *msg);
-static DBusMessage *server_handle_time_change(DBusMessage *msg);
+static void                server_rethink_new                   (void);
+static void                server_rethink_waitconn              (void);
+static void                server_rethink_queued                (void);
+static void                server_rethink_missed                (void);
+static void                server_rethink_postponed             (void);
+static void                server_rethink_limbo                 (void);
+static void                server_rethink_triggered             (void);
+static void                server_rethink_waitsysui             (void);
+static void                server_rethink_sysui_req             (void);
+static void                server_rethink_sysui_ack             (void);
+static void                server_rethink_sysui_rsp             (void);
+static void                server_rethink_snoozed               (void);
+static void                server_rethink_served                (void);
+static void                server_rethink_recurring             (void);
+static void                server_rethink_deleted               (void);
+static int                 server_rethink_timechange            (void);
 
-static DBusHandlerResult server_session_bus_cb(DBusConnection *conn, DBusMessage *msg, void *user_data);
-static DBusHandlerResult server_system_bus_cb(DBusConnection *conn, DBusMessage *msg, void *user_data);
+static void                server_broadcast_timechange_handled  (void);
+static gboolean            server_rethink_start_cb              (gpointer data);
+static void                server_rethink_request               (int delayed);
 
-static void server_icd_status_cb(int connected);
+static DBusMessage        *server_handle_set_debug              (DBusMessage *msg);
+static DBusMessage        *server_handle_CUD                    (DBusMessage *msg);
+static DBusMessage        *server_handle_RFS                    (DBusMessage *msg);
+static DBusMessage        *server_handle_snooze_get             (DBusMessage *msg);
+static DBusMessage        *server_handle_snooze_set             (DBusMessage *msg);
+static DBusMessage        *server_handle_event_add              (DBusMessage *msg);
+static DBusMessage        *server_handle_event_update           (DBusMessage *msg);
+static DBusMessage        *server_handle_event_del              (DBusMessage *msg);
+static DBusMessage        *server_handle_event_query            (DBusMessage *msg);
+static DBusMessage        *server_handle_event_get              (DBusMessage *msg);
+static DBusMessage        *server_handle_event_ack              (DBusMessage *msg);
+static DBusMessage        *server_handle_queue_ack              (DBusMessage *msg);
+static DBusMessage        *server_handle_name_acquired          (DBusMessage *msg);
+static DBusMessage        *server_handle_save_data              (DBusMessage *msg);
+static DBusMessage        *server_handle_shutdown               (DBusMessage *msg);
+static DBusMessage        *server_handle_init_done              (DBusMessage *msg);
+static DBusMessage        *server_handle_hildon_ready           (DBusMessage *msg);
+static DBusMessage        *server_handle_name_owner_chaned      (DBusMessage *msg);
+static DBusMessage        *server_handle_time_change            (DBusMessage *msg);
 
-static int  server_init_session_bus(void);
-static int  server_init_system_bus(void);
+static DBusHandlerResult   server_session_bus_cb                (DBusConnection *conn, DBusMessage *msg, void *user_data);
+static DBusHandlerResult   server_system_bus_cb                 (DBusConnection *conn, DBusMessage *msg, void *user_data);
 
-static void server_quit_session_bus(void);
-static void server_quit_system_bus(void);
-#endif
+static void                server_icd_status_cb                 (int connected);
+
+static int                 server_init_session_bus              (void);
+static int                 server_init_system_bus               (void);
+static void                server_quit_session_bus              (void);
+static void                server_quit_system_bus               (void);
 
 /* ========================================================================= *
  * Configuration
@@ -744,11 +751,11 @@ server_queuestate_sync(void)
     char a[32];
     char n[32];
 
-    log_debug("QSTATE - active: %d, desktop: T%s, act dead: T%s, no boot: T%s\n",
-              server_queuestate_curr.qs_alarms,
-              timeto(d, sizeof d, server_queuestate_curr.qs_desktop),
-              timeto(a, sizeof a, server_queuestate_curr.qs_actdead),
-              timeto(n, sizeof n, server_queuestate_curr.qs_no_boot));
+    log_info("QSTATE - active: %d, desktop: T%s, act dead: T%s, no boot: T%s\n",
+             server_queuestate_curr.qs_alarms,
+             timeto(d, sizeof d, server_queuestate_curr.qs_desktop),
+             timeto(a, sizeof a, server_queuestate_curr.qs_actdead),
+             timeto(n, sizeof n, server_queuestate_curr.qs_no_boot));
 
 // QUARANTINE     auto int timeto(time_t d);
 // QUARANTINE     auto int timeto(time_t d)
@@ -845,7 +852,7 @@ static void server_limbo_disable(const char *reason)
   // disable limbo
   if( !(server_state_get() & SF_DESKTOP_UP) )
   {
-    log_debug("%s -> LIMBO disabled\n", reason);
+    log_info("%s -> LIMBO disabled\n", reason);
     server_state_set(0, SF_DESKTOP_UP);
   }
 }
@@ -860,7 +867,7 @@ server_limbo_disable_cb(gpointer data)
 {
   server_limbo_timeout_id = 0;
 
-  log_debug("================ DESKTOP READY TIMEOUT ================\n");
+  log_info("================ DESKTOP READY TIMEOUT ================\n");
   server_limbo_disable("desktop ready timeout");
 
   return FALSE;
@@ -876,7 +883,7 @@ static void server_limbo_disable_delayed(const char *reason)
   {
     if( server_limbo_timeout_len > 0 && server_limbo_timeout_id == 0 )
     {
-      log_debug("%s -> LIMBO timeout = %d seconds\n", reason,
+      log_info("%s -> LIMBO timeout = %d seconds\n", reason,
                 server_limbo_timeout_len);
       server_limbo_timeout_id = g_timeout_add_seconds(server_limbo_timeout_len,
                                                       server_limbo_disable_cb,
@@ -945,7 +952,7 @@ server_timestate_init(void)
   server_timestate_read();
   server_timestate_sync();
 
-  log_debug("timezone: '%s'\n", server_tz_curr);
+  log_info("timezone: '%s'\n", server_tz_curr);
 }
 
 /* ========================================================================= *
@@ -1014,19 +1021,19 @@ server_state_init(void)
 
   if( server_limbo_wait_state == DESKTOP_WAIT_DISABLED )
   {
-    log_debug("desktop wait disabled -> LIMBO disabled\n");
+    log_info("desktop wait disabled -> LIMBO disabled\n");
     server_state_real |= SF_DESKTOP_UP;
   }
 
   if( dbusif_check_name_owner(server_session_bus, HOME_SERVICE) == 0 )
   {
-    log_debug("home ready detected -> LIMBO disabled\n");
+    log_info("home ready detected -> LIMBO disabled\n");
     server_state_real |= SF_DESKTOP_UP;
   }
 
   if( access("/tmp/ACT_DEAD", F_OK) == 0 )
   {
-    log_debug("not in USER state -> LIMBO enabled\n");
+    log_info("not in USER state -> LIMBO enabled\n");
     server_state_real |= SF_ACT_DEAD;
   }
 
@@ -1191,7 +1198,7 @@ server_action_do_disable(alarm_event_t *event, alarm_action_t *action)
    * In the latter case the event will re-enter the
    * state machine via ALARM_STATE_NEW state.
    */
-  log_debug("DISABLING DUE TO ACTION: cookie=%d\n", (int)event->ALARMD_PRIVATE(cookie));
+  log_info("DISABLING DUE TO ACTION: cookie=%d\n", (int)event->ALARMD_PRIVATE(cookie));
   event->flags |= ALARM_EVENT_DISABLED;
   return 0;
 }
@@ -1267,7 +1274,7 @@ server_action_do_exec(alarm_event_t *event, alarm_action_t *action)
     goto cleanup;
   }
 
-  log_debug("EXEC: %s\n", cmd);
+  log_info("EXEC: %s\n", cmd);
   ipc_exec_run_command(cmd);
   err = 0;
 
@@ -1288,14 +1295,14 @@ server_action_do_dbus(alarm_event_t *event, alarm_action_t *action)
   int          err = -1;
   DBusMessage *msg = 0;
 
-  log_debug("DBUS: service   = '%s'\n", action->dbus_service);
-  log_debug("DBUS: path      = '%s'\n", action->dbus_path);
-  log_debug("DBUS: interface = '%s'\n", action->dbus_interface);
-  log_debug("DBUS: name      = '%s'\n", action->dbus_name);
+  log_info("DBUS: service   = '%s'\n", action->dbus_service);
+  log_info("DBUS: path      = '%s'\n", action->dbus_path);
+  log_info("DBUS: interface = '%s'\n", action->dbus_interface);
+  log_info("DBUS: name      = '%s'\n", action->dbus_name);
 
   if( !xisempty(action->dbus_service) )
   {
-    log_debug("DBUS: is method\n");
+    log_info("DBUS: is method\n");
     msg = dbus_message_new_method_call(action->dbus_service,
                                        action->dbus_path,
                                        action->dbus_interface,
@@ -1303,14 +1310,14 @@ server_action_do_dbus(alarm_event_t *event, alarm_action_t *action)
 
     if( action->flags & ALARM_ACTION_DBUS_USE_ACTIVATION )
     {
-      log_debug("DBUS: is auto start\n");
+      log_info("DBUS: is auto start\n");
       dbus_message_set_auto_start(msg, TRUE);
     }
     dbus_message_set_no_reply(msg, TRUE);
   }
   else
   {
-    log_debug("DBUS: is signal\n");
+    log_info("DBUS: is signal\n");
     msg = dbus_message_new_signal(action->dbus_path,
                                   action->dbus_interface,
                                   action->dbus_name);
@@ -1322,13 +1329,13 @@ server_action_do_dbus(alarm_event_t *event, alarm_action_t *action)
 
     if( !xisempty(action->dbus_args) )
     {
-      log_debug("DBUS: has user args\n");
+      log_info("DBUS: has user args\n");
       serialize_unpack_to_mesg(action->dbus_args, msg);
     }
 
     if( action->flags & ALARM_ACTION_DBUS_ADD_COOKIE )
     {
-      log_debug("DBUS: appending cookie %d\n", (int)event->ALARMD_PRIVATE(cookie));
+      log_info("DBUS: appending cookie %d\n", (int)event->ALARMD_PRIVATE(cookie));
 
       dbus_int32_t cookie = event->ALARMD_PRIVATE(cookie);
       dbus_message_append_args(msg,
@@ -1338,18 +1345,18 @@ server_action_do_dbus(alarm_event_t *event, alarm_action_t *action)
 
     if( action->flags & ALARM_ACTION_DBUS_USE_SYSTEMBUS )
     {
-      log_debug("DBUS: using system bus\n");
+      log_info("DBUS: using system bus\n");
       conn = server_system_bus;
     }
 
     if( conn != 0 && dbus_connection_send(conn, msg, 0) )
     {
-      log_debug("DBUS: send ok\n");
+      log_info("DBUS: send ok\n");
       err = 0;
     }
   }
 
-  log_debug("DBUS: error=%d\n", err);
+  log_info("DBUS: error=%d\n", err);
 
   if( msg != 0 )
   {
@@ -1372,33 +1379,33 @@ server_action_do_all(alarm_event_t *event, alarm_action_t *action)
 
     if( flags & ALARM_ACTION_TYPE_SNOOZE )
     {
-      log_debug("ACTION: SNOOZE\n");
+      log_info("ACTION: SNOOZE\n");
       server_action_do_snooze(event, action);
     }
     if( flags & ALARM_ACTION_TYPE_DISABLE )
     {
-      log_debug("ACTION: DISABLE\n");
+      log_info("ACTION: DISABLE\n");
       server_action_do_disable(event, action);
     }
     if( flags & ALARM_ACTION_TYPE_DBUS )
     {
-      log_debug("ACTION: DBUS\n");
+      log_info("ACTION: DBUS\n");
       server_action_do_dbus(event, action);
     }
     if( flags & ALARM_ACTION_TYPE_EXEC )
     {
-      log_debug("ACTION: EXEC: %s\n", action->exec_command);
+      log_info("ACTION: EXEC: %s\n", action->exec_command);
       server_action_do_exec(event, action);
     }
 #if ALARMD_ACTION_BOOTFLAGS
     if( flags & ALARM_ACTION_TYPE_DESKTOP )
     {
-      log_debug("ACTION: DESKTOP\n");
+      log_info("ACTION: DESKTOP\n");
       server_action_do_desktop(event, action);
     }
     if( flags & ALARM_ACTION_TYPE_ACTDEAD )
     {
-      log_debug("ACTION: ACTDEAD\n");
+      log_info("ACTION: ACTDEAD\n");
       server_action_do_actdead(event, action);
     }
 #endif
@@ -1670,7 +1677,8 @@ server_event_evaluate_initial_trigger(alarm_event_t *self)
   time_t t0 = ticker_get_time();
   time_t t1 = server_event_get_next_trigger(t0, self->alarm_time, self);
 
-  log_debug("TRIGGER -> T%s, %s\n",
+  log_debug("[%ld] INITIAL TRIGGER: T%s, %s\n",
+            (long)alarm_event_get_cookie(self),
             ticker_secs_format(0,0,t0-t1),
             ticker_date_format_long(0,0,t1));
 
@@ -1736,7 +1744,7 @@ server_clock_source_is_stable(void)
 
   if( !initialized )
   {
-    log_debug("clock source initialized\n");
+    log_info("clock source initialized\n");
     initialized = 1;
     delta_clock = delta;
     delta_sched = delta;
@@ -1745,7 +1753,7 @@ server_clock_source_is_stable(void)
 
   if( server_state_get() & SF_CLK_CHANGED )
   {
-    log_debug("clock source changed\n");
+    log_info("clock source changed\n");
     server_state_clr(SF_CLK_CHANGED);
     detected = 1;
   }
@@ -1754,19 +1762,19 @@ server_clock_source_is_stable(void)
 
   if( delta_diff < -CLK_JITTER || +CLK_JITTER < delta_diff )
   {
-    log_debug("clock change: %+ld seconds\n", (long)delta_diff);
+    log_info("clock change: %+ld seconds\n", (long)delta_diff);
     detected = 1;
   }
 
   if( detected != 0 )
   {
     delta_clock = delta;
-    delay_until  = mono_time + CLK_STABLE;
+    delay_until = mono_time + CLK_STABLE;
   }
 
   if( mono_time < delay_until )
   {
-    log_debug("waiting clock source to stabilize ...\n");
+    log_info("waiting clock source to stabilize ...\n");
     return FALSE;
   }
 
@@ -1774,14 +1782,14 @@ server_clock_source_is_stable(void)
 
   if( delta_diff > +CLK_RESCHED )
   {
-    log_debug("overall change: %+ld seconds\n", (long)delta_diff);
+    log_info("overall change: %+ld seconds\n", (long)delta_diff);
     delta_sched = delta_clock;
     delta_forw += delta_diff;
     server_state_set(0, SF_CLK_MV_FORW);
   }
   else if( delta_diff < -CLK_RESCHED )
   {
-    log_debug("overall change: %+ld seconds\n", (long)delta_diff);
+    log_info("overall change: %+ld seconds\n", (long)delta_diff);
     delta_sched = delta_clock;
     delta_back += delta_diff;
     server_state_set(0, SF_CLK_MV_BACK);
@@ -1916,7 +1924,7 @@ server_handle_systemui_ack(cookie_t *vec, int cnt)
   for( int i = 0; i < cnt; ++i )
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
-    log_debug("ack [%d] - cookie=%ld, event=%p\n", i, vec[i], eve);
+    log_debug("[%ld] ACK: event=%p\n", vec[i], eve);
     if( eve != 0 )
     {
       queue_event_set_state(eve, ALARM_STATE_SYSUI_ACK);
@@ -1950,7 +1958,7 @@ server_handle_systemui_rsp(cookie_t cookie, int button)
 
   alarm_event_t *eve = queue_get_event(cookie);
 
-  log_debug("rsp %ld -> %p (button=%d)\n", cookie, eve, button);
+  log_info("rsp %ld -> %p (button=%d)\n", cookie, eve, button);
 
   if( eve != 0 )
   {
@@ -1985,9 +1993,10 @@ server_rethink_new(void)
       time_t now = server_rethink_time;
       time_t trg = alarm_event_get_trigger(eve);
 
-      log_debug("NEW: T%s, %s\n",
-                ticker_secs_format(0,0,now-trg),
-                ticker_date_format_long(0,0,trg));
+      log_info("[%ld] NEW: %s (T%s)\n",
+               (long)vec[i],
+               ticker_date_format_long(0,0,trg),
+               ticker_secs_format(0,0,now-trg));
 
 // QUARANTINE       time_t    now = server_rethink_time;
 // QUARANTINE       time_t    tot = alarm_event_get_trigger(eve) - eve->alarm_time;
@@ -2163,6 +2172,8 @@ server_rethink_missed(void)
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
 
+    log_debug("[%ld] MISSED\n", (long)vec[i]);
+
     /* - - - - - - - - - - - - - - - - - - - *
      * handle actions bound to missed alarms
      * - - - - - - - - - - - - - - - - - - - */
@@ -2186,7 +2197,7 @@ server_rethink_missed(void)
     }
     if( eve->flags & ALARM_EVENT_DISABLE_DELAYED )
     {
-      log_debug("DISABLING MISSED ALARM: cookie=%d\n", (int)eve->ALARMD_PRIVATE(cookie));
+      log_info("DISABLING MISSED ALARM: cookie=%d\n", (int)eve->ALARMD_PRIVATE(cookie));
       // the event will come invisible to alarmd state machine
       // once the ALARM_EVENT_DISABLED flag is set
       // -> no state transfer required
@@ -2217,6 +2228,8 @@ server_rethink_postponed(void)
   for( int i = 0; i < cnt; ++i )
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
+
+    log_debug("[%ld] POSTPONED\n", (long)vec[i]);
 
     time_t snooze = server_event_get_snooze(eve);
 
@@ -2326,7 +2339,7 @@ server_rethink_triggered(void)
       ticker_break_tm(alarm_event_get_trigger(eve), &tm, tz);
       server_repr_tm(&tm, tz, trg, sizeof trg);
 
-      log_debug("TRIGGERED: %s -- %s\n", now, trg);
+      log_info("[%ld] TRIGGERED: %s -- %s\n", (long)vec[i], now, trg);
     }
 
     if( server_event_get_buttons(eve, 0,0) )
@@ -2441,8 +2454,7 @@ server_rethink_sysui_rsp(void)
   for( int i = 0; i < cnt; ++i )
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
-    log_debug("RSP [%03d] %ld -> %p  BUTTON(%d)\n", i, (long)vec[i], eve,
-              eve->response);
+    log_info("[%ld] RSP: button=%d\n", (long)vec[i], eve->response);
 
     server_event_do_response_actions(eve);
 
@@ -2474,6 +2486,8 @@ server_rethink_snoozed(void)
 
     time_t snooze = server_event_get_snooze(eve);
     time_t curr   = now + snooze;
+
+    log_debug("[%ld] SNOOZED: secs=%ld\n", (long)vec[i], (long)snooze);
 
 #if SNOOZE_HIJACK_FIX
     if( eve->snooze_total == 0 )
@@ -2509,6 +2523,8 @@ server_rethink_served(void)
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
 
+    log_debug("[%ld] SERVED\n", (long)vec[i]);
+
     if( alarm_event_is_recurring(eve) )
     {
       queue_event_set_state(eve, ALARM_STATE_RECURRING);
@@ -2539,6 +2555,8 @@ server_rethink_recurring(void)
 
     time_t prev = alarm_event_get_trigger(eve);
     time_t curr = INT_MAX;
+
+    log_debug("[%ld] RECURRING: count=%d\n", (long)vec[i], eve->recur_count);
 
     if( eve->recur_count > 0 )
     {
@@ -2601,7 +2619,7 @@ server_rethink_deleted(void)
   for( int i = 0; i < cnt; ++i )
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
-    log_debug("DEL [%03d] %ld -> %p\n", i, (long)vec[i], eve);
+    log_debug("[%ld] DELETED\n", (long)vec[i]);
     server_event_do_state_actions(eve, ALARM_ACTION_WHEN_DELETED);
   }
 
@@ -2614,198 +2632,170 @@ server_rethink_deleted(void)
 }
 
 /* ------------------------------------------------------------------------- *
- * server_rethink_timezone
+ * server_rethink_timechange
  * ------------------------------------------------------------------------- */
 
 static
-void
-server_rethink_timezone(void)
+int
+server_rethink_timechange(void)
 {
+  int    again = 0;
+  int    zone  = 0;
+  time_t back  = 0;
+  time_t forw  = 0;
+  time_t adj   = 0;
+  int    dirty = 0;
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * save queue state so that we can track
+   * changes originating from this function
+   * - - - - - - - - - - - - - - - - - - - */
+
+  dirty = queue_is_dirty(), queue_clr_dirty();
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * process state flag chages
+   * - - - - - - - - - - - - - - - - - - - */
+
   if( server_state_get() & SF_TZ_CHANGED )
   {
     server_state_clr(SF_TZ_CHANGED);
-    log_debug("timezone: '%s' -> '%s'\n", server_tz_prev, server_tz_curr);
-    server_timestate_sync();
-
-    int       cnt = 0;
-    cookie_t *vec = queue_query_by_state(&cnt, ALARM_STATE_QUEUED);
-
-    for( int i = 0; i < cnt; ++i )
-    {
-      alarm_event_t *eve = queue_get_event(vec[i]);
-
-      /* - - - - - - - - - - - - - - - - - - - *
-       * do not re-schedule alarms that have
-       * been snoozed
-       * - - - - - - - - - - - - - - - - - - - */
-
-      if( server_event_is_snoozed(eve) )
-      {
-        continue;
-      }
-
-      /* - - - - - - - - - - - - - - - - - - - *
-       * timezone change affects alarms that:
-       * 1) use broken down alarm time
-       * 2) use empty alarm timezone
-       * - - - - - - - - - - - - - - - - - - - */
-
-      if( (eve->alarm_time <= 0) && xisempty(eve->alarm_tz) )
-      {
-        time_t now = server_rethink_time;
-        time_t old = alarm_event_get_trigger(eve);
-        time_t use = server_event_get_next_trigger(now, -1, eve);
-
-        if( use != old )
-        {
-          const char *tz = server_event_get_tz(eve);
-          struct tm tm;
-          char trg[128];
-
-          ticker_break_tm(old, &tm, tz);
-          server_repr_tm(&tm, tz, trg, sizeof trg);
-          log_debug("OLD: %s, at %+d\n", trg, (int)(old - now));
-
-          ticker_break_tm(use, &tm, tz);
-          server_repr_tm(&tm, tz, trg, sizeof trg);
-          log_debug("USE: %s, at %+d\n", trg, (int)(use - now));
-
-          queue_event_set_trigger(eve, use);
-          queue_event_set_state(eve, ALARM_STATE_NEW);
-        }
-      }
-    }
-
-    free(vec);
+    zone = 1;
+    log_info("timezone: '%s' -> '%s'\n", server_tz_prev, server_tz_curr);
   }
-}
 
-/* ------------------------------------------------------------------------- *
- * server_rethink_back_in_time
- * ------------------------------------------------------------------------- */
-
-static
-void
-server_rethink_back_in_time(void)
-{
-  if( server_state_get() & SF_CLK_MV_BACK )
-  {
-    log_debug("handle clock -> BACKWARDS\n");
-    server_state_clr(SF_CLK_MV_BACK);
-
-    /* Re-evaluate trigger time for recurring alarms
-     * with ALARM_EVENT_BACK_RESCHEDULE flag set */
-
-    int       cnt = 0;
-    cookie_t *vec = queue_query_by_state(&cnt, ALARM_STATE_QUEUED);
-#if SNOOZE_ADJUST_FIX
-    time_t    add = server_clock_back_delta();
-#endif
-
-    for( int i = 0; i < cnt; ++i )
-    {
-      alarm_event_t *eve = queue_get_event(vec[i]);
-
-      /* - - - - - - - - - - - - - - - - - - - *
-       * do not re-schedule alarms that have
-       * been snoozed
-       * - - - - - - - - - - - - - - - - - - - */
-
-      if( server_event_is_snoozed(eve) )
-      {
-#if SNOOZE_ADJUST_FIX
-        queue_event_set_trigger(eve, alarm_event_get_trigger(eve) + add);
-        queue_event_set_state(eve, ALARM_STATE_NEW);
-#endif
-        continue;
-      }
-
-      if( eve->flags & ALARM_EVENT_BACK_RESCHEDULE )
-      {
-        if( alarm_event_is_recurring(eve) )
-        {
-          // make moving recurrence time due to clock
-          // change recur_count -neutral
-          if( eve->recur_count > 0 )
-          {
-            eve->recur_count += 1;
-          }
-          queue_event_set_state(eve, ALARM_STATE_RECURRING);
-        }
-        else if( eve->alarm_time <= 0 )
-        {
-          // re-evalueate the trigger time if
-          // the alarm uses broken down time
-
-          time_t trigger = server_event_evaluate_initial_trigger(eve);
-
-          queue_event_set_trigger(eve, trigger);
-          queue_event_set_state(eve, ALARM_STATE_NEW);
-        }
-      }
-    }
-    free(vec);
-  }
-}
-
-/* ------------------------------------------------------------------------- *
- * server_rethink_forw_in_time
- * ------------------------------------------------------------------------- */
-
-static
-void
-server_rethink_forw_in_time(void)
-{
   if( server_state_get() & SF_CLK_MV_FORW )
   {
-    log_debug("handle clock -> FORWARDS\n");
     server_state_clr(SF_CLK_MV_FORW);
+    forw = server_clock_forw_delta();
+    //log_info("system time: %+ld (FORWARDS)\n", (long)forw);
+  }
 
-    /* Re-evaluate trigger time for recurring alarms
-     * that were missed due to clock change */
+  if( server_state_get() & SF_CLK_MV_BACK )
+  {
+    server_state_clr(SF_CLK_MV_BACK);
+    back = server_clock_back_delta();
+    //log_info("system time: %+ld (BACKWARDS)\n", (long)back);
+  }
 
-    time_t    now = server_rethink_time;
+  if( (adj = forw + back) != 0 )
+  {
+    log_info("system time: %+ld seconds\n", (long)adj);
+  }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * process events only if timezone or
+   * system time has actually changed
+   * - - - - - - - - - - - - - - - - - - - */
+
+  if( zone || adj != 0 )
+  {
     int       cnt = 0;
     cookie_t *vec = queue_query_by_state(&cnt, ALARM_STATE_QUEUED);
-#if SNOOZE_ADJUST_FIX
-    time_t    add = server_clock_forw_delta();
-#endif
 
     for( int i = 0; i < cnt; ++i )
     {
       alarm_event_t *eve = queue_get_event(vec[i]);
 
       /* - - - - - - - - - - - - - - - - - - - *
-       * do not re-schedule alarms that have
-       * been snoozed
+       * Snoozed alarms: Just adjust the trigger
+       * time so that it still happens relative
+       * to when snoozing took place
        * - - - - - - - - - - - - - - - - - - - */
 
       if( server_event_is_snoozed(eve) )
       {
 #if SNOOZE_ADJUST_FIX
-        queue_event_set_trigger(eve, alarm_event_get_trigger(eve) + add);
+        queue_event_set_trigger(eve, alarm_event_get_trigger(eve) + adj);
         queue_event_set_state(eve, ALARM_STATE_NEW);
 #endif
         continue;
       }
 
-      if( alarm_event_is_recurring(eve) )
+      /* - - - - - - - - - - - - - - - - - - - *
+       * Alarms that use absolute triggering
+       * are not affected by system time or
+       * time zone changes
+       * - - - - - - - - - - - - - - - - - - - */
+
+      if( eve->alarm_time > 0 )
       {
-        if( alarm_event_get_trigger(eve) <= now )
+        continue;
+      }
+
+      /* - - - - - - - - - - - - - - - - - - - *
+       * evaluate updated trigger time
+       * - - - - - - - - - - - - - - - - - - - */
+
+      time_t now = server_rethink_time;
+      time_t old = alarm_event_get_trigger(eve);
+      time_t use = server_event_get_next_trigger(now, -1, eve);
+
+      if( use == old )
+      {
+        // no change in triggering time
+        continue;
+      }
+
+      if( !(eve->flags & ALARM_EVENT_BACK_RESCHEDULE) )
+      {
+        // The trigger time of the alarm is not to be moved
+        // backwards due to system time change. Minor time
+        // adjustments (network time sync etc) are allowed,
+        // so that the alarm time stays at the expected time
+        // of day.
+
+        if( (use < old) && (adj < -5*60) )
         {
-          // make moving recurrence time due to clock
-          // change recur_count -neutral
-          if( eve->recur_count > 0 )
-          {
-            eve->recur_count += 1;
-          }
-          queue_event_set_state(eve, ALARM_STATE_RECURRING);
+          // the trigger time would go backwards
+          // system went back more than 5 mins
+          // -> do not reschedule
+          continue;
         }
+      }
+
+      /* - - - - - - - - - - - - - - - - - - - *
+       * adjust alarm triggering time
+       * - - - - - - - - - - - - - - - - - - - */
+
+      {
+        const char *tz = NULL;
+        struct tm tm;
+        char trg[128];
+
+        if( !xisempty(eve->alarm_tz) )
+        {
+          tz = eve->alarm_tz;
+        }
+
+        ticker_break_tm(old, &tm, tz ?: server_tz_prev);
+        server_repr_tm(&tm, tz ?: server_tz_prev, trg, sizeof trg);
+        log_debug("[%ld] OLD: %s, at %+d\n", vec[i], trg, (int)(old - now));
+
+        ticker_break_tm(use, &tm, tz ?: server_tz_curr);
+        server_repr_tm(&tm, tz ?: server_tz_curr, trg, sizeof trg);
+        log_debug("[%ld] NEW: %s, at %+d\n", vec[i], trg, (int)(use - now));
+
+        queue_event_set_trigger(eve, use);
+        queue_event_set_state(eve, ALARM_STATE_NEW);
       }
     }
 
+    server_timestate_sync();
+
     free(vec);
   }
+
+  /* - - - - - - - - - - - - - - - - - - - *
+   * obtain & return queue changes due to
+   * this function, make sure previous
+   * dirty state is not lost
+   * - - - - - - - - - - - - - - - - - - - */
+
+  again = queue_is_dirty();
+  if( dirty ) queue_set_dirty();
+
+  return again;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -2857,14 +2847,10 @@ server_rethink_start_cb(gpointer data)
   server_rethink_id   = 0;
   server_rethink_time = ticker_get_time();
 
-  server_rethink_back_in_time();
-  server_rethink_forw_in_time();
-  server_rethink_timezone();
-
   server_queue_cancel_save();
 
-  log_debug("-- rethink --\n");
-  do
+  log_info("-- rethink --\n");
+  for( ;; )
   {
     queue_clr_dirty();
 
@@ -2874,6 +2860,15 @@ server_rethink_start_cb(gpointer data)
 
     server_rethink_new();
     server_rethink_waitconn();
+
+    if( server_rethink_timechange() )
+    {
+      // ALARM_STATE_QUEUED -> ALARM_STATE_NEW
+      // alarm state transitions were made and
+      // those alarms need to be re-evaluated
+      continue;
+    }
+
     server_rethink_queued();
     server_rethink_missed();
     server_rethink_postponed();
@@ -2894,7 +2889,8 @@ server_rethink_start_cb(gpointer data)
 
     //log_debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 
-  } while( queue_is_dirty() );
+    if( !queue_is_dirty() ) break;
+  }
 
 // QUARANTINE   server_queuestate_curr.qs_alarms += queue_count_by_state(ALARM_STATE_LIMBO);
 // QUARANTINE   server_queuestate_curr.qs_alarms += queue_count_by_state(ALARM_STATE_TRIGGERED);
@@ -3155,6 +3151,8 @@ server_handle_event_add(DBusMessage *msg)
 
   server_rethink_request(1);
 
+  log_info("%s() -> %ld\n", __FUNCTION__, (long)cookie);
+
   return rsp;
 }
 
@@ -3208,6 +3206,8 @@ server_handle_event_update(DBusMessage *msg)
 
   server_rethink_request(1);
 
+  log_info("%s() -> %ld\n", __FUNCTION__, (long)cookie);
+
   return rsp;
 }
 
@@ -3231,6 +3231,8 @@ server_handle_event_del(DBusMessage *msg)
     rsp = dbusif_reply_create(msg, DBUS_TYPE_BOOLEAN, &res, DBUS_TYPE_INVALID);
     server_rethink_request(1);
   }
+
+  log_info("%s() -> %s\n", __FUNCTION__, res ? "OK" : "ERR");
 
   return rsp;
 }
@@ -3302,7 +3304,7 @@ server_handle_event_get(DBusMessage *msg)
     }
   }
 
-  log_debug_F("cookie=%ld, event=%p, rsp=%p\n", (long)cookie, event, rsp);
+// QUARANTINE   log_debug_F("cookie=%ld, event=%p, rsp=%p\n", (long)cookie, event, rsp);
 
   return rsp;
 }
@@ -3395,7 +3397,7 @@ server_handle_save_data(DBusMessage *msg)
 {
   DBusMessage   *rsp       = 0;
 
-  log_debug("================ SAVE DATA SIGNAL ================\n");
+  log_info("================ SAVE DATA SIGNAL ================\n");
 
   server_queue_forced_save();
 
@@ -3412,7 +3414,7 @@ server_handle_shutdown(DBusMessage *msg)
 {
   DBusMessage   *rsp       = 0;
 
-  log_debug("================ SHUT DOWN SIGNAL ================\n");
+  log_info("================ SHUT DOWN SIGNAL ================\n");
 
   // FIXME: what are we supposed to do when dsme sends us the shutdown signal?
 
@@ -3429,7 +3431,7 @@ server_handle_init_done(DBusMessage *msg)
 {
   DBusMessage   *rsp       = 0;
 
-  log_debug("================ INIT DONE SIGNAL ================\n");
+  log_info("================ INIT DONE SIGNAL ================\n");
 
   // do it anyway ...
   //if( server_limbo_wait_state == DESKTOP_WAIT_STARTUP )
@@ -3450,7 +3452,7 @@ server_handle_hildon_ready(DBusMessage *msg)
 {
   DBusMessage   *rsp       = 0;
 
-  log_debug("================ HILDON READY ================\n");
+  log_info("================ HILDON READY ================\n");
 
   if( server_limbo_wait_state == DESKTOP_WAIT_HILDON )
   {
@@ -3553,7 +3555,7 @@ server_handle_name_owner_chaned(DBusMessage *msg)
     {
       if( !xisempty(new_owner) )
       {
-        log_debug("================ HOME READY ================\n");
+        log_info("================ HOME READY ================\n");
 
         if( server_limbo_wait_state == DESKTOP_WAIT_HOME )
         {
@@ -3584,7 +3586,7 @@ server_handle_time_change(DBusMessage *msg)
   dbus_int32_t clk = 0;
   DBusError    err = DBUS_ERROR_INIT;
 
-  log_debug("clockd - time change notification received\n");
+  log_info("clockd - time change notification received\n");
 
   server_state_set(0, SF_CLK_BCAST);
 
@@ -3601,19 +3603,19 @@ server_handle_time_change(DBusMessage *msg)
 
   if( strcmp(server_tz_curr, server_tz_prev) )
   {
-    log_debug("clockd - timezone changed\n");
+    log_info("clockd - timezone changed\n");
     server_state_set(0, SF_TZ_CHANGED);
   }
 
   if( server_dst_curr != server_dst_prev )
   {
-    log_debug("clockd - isdst changed\n");
+    log_info("clockd - isdst changed\n");
     server_state_set(0, SF_TZ_CHANGED);
   }
 
   if( clk != 0 )
   {
-    log_debug("clockd - system time changed\n");
+    log_info("clockd - system time changed\n");
     server_state_set(0, SF_CLK_CHANGED);
   }
 
@@ -3836,7 +3838,7 @@ static
 void
 server_icd_status_cb(int connected)
 {
-  log_debug("internet connection: %s\n",
+  log_info("internet connection: %s\n",
             connected ? "available" : "not available");
   if( connected )
   {

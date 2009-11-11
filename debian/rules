@@ -16,6 +16,7 @@
 	binary-indep binary-arch binary
 
 build:: build-stamp
+	$(MAKE)
 
 binary:: binary-indep binary-arch
 

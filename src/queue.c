@@ -323,7 +323,10 @@ queue_set_snooze(unsigned snooze)
 void
 queue_event_set_trigger(alarm_event_t *event, time_t trigger)
 {
-  log_debug("!!! RESET TRIGGER -> %+d secs\n", (int)(trigger - ticker_get_time()));
+  log_info("[%ld] SET TRIGGER: %s (T%s)\n",
+           (long)alarm_event_get_cookie(event),
+           ticker_date_format_long(0,0,trigger),
+           ticker_secs_format(0,0,ticker_get_time()-trigger));
 
   size_t ti, to;
 
@@ -459,10 +462,10 @@ queue_event_set_state(alarm_event_t *self, unsigned state)
 
   if( previous != current )
   {
-    log_info("TRANS [%ld] %s -> %s\n",
-              self->ALARMD_PRIVATE(cookie),
-            queue_event_state_names[previous],
-            queue_event_state_names[current]);
+    log_info("[%ld] TRANS: %s -> %s\n",
+             self->ALARMD_PRIVATE(cookie),
+             queue_event_state_names[previous],
+             queue_event_state_names[current]);
 
     if( (current == ALARM_STATE_NEW) || (current < previous) )
     {
@@ -471,10 +474,17 @@ queue_event_set_state(alarm_event_t *self, unsigned state)
   }
   else if( current != state )
   {
-    log_warning("TRANS [%ld] %s -> %s - BLOCKED\n",
+    log_warning("[%ld] TRANS: %s -> %s - BLOCKED\n",
               self->ALARMD_PRIVATE(cookie),
               queue_event_state_names[previous],
               queue_event_state_names[state]);
+  }
+  else if( current == ALARM_STATE_NEW )
+  {
+    log_info("[%ld] TRANS: %s -> %s\n",
+             self->ALARMD_PRIVATE(cookie),
+             queue_event_state_names[previous],
+             queue_event_state_names[current]);
   }
 
   self->flags &= ALARM_EVENT_CLIENT_MASK;
@@ -1274,9 +1284,9 @@ queue_save_internal(int forced)
   default: fail_cnt += 1; break;
   }
 
-  log_debug("queue save: %s -> saved=%d, skipped=%d, failed=%d\n",
-            (result==0) ? "SKIP" : (result==1) ? "SAVE" : "FAIL",
-            save_cnt, skip_cnt, fail_cnt);
+  log_info("queue save: %s -> saved=%d, skipped=%d, failed=%d\n",
+           (result==0) ? "SKIP" : (result==1) ? "SAVE" : "FAIL",
+           save_cnt, skip_cnt, fail_cnt);
 
   /* - - - - - - - - - - - - - - - - - - - *
    * release buffers

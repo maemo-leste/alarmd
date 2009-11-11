@@ -377,9 +377,9 @@ main(int argc, char **argv)
   log_set_level(log_level);
   log_open("alarmd", log_driver, 1);
 
-  log_debug("-- startup --\n");
+  log_info("-- startup --\n");
   int xc = mainloop_run();
-  log_debug("-- exit --\n");
+  log_info("-- exit %d --\n", xc);
   log_close();
   return xc;
 }

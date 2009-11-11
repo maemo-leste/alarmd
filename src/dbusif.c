@@ -456,8 +456,8 @@ dbusif_pending_gate_init(void (*callback)(DBusPendingCall *, void *),
   gate->user_data = user_data;
   gate->user_free = user_free;
 
-  log_info("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
-           dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
+  log_debug("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
+            dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
   return gate;
 }
 static
@@ -467,8 +467,8 @@ dbusif_pending_gate_call(DBusPendingCall *pend, void *aptr)
   dbusif_pending_call += 1;
 
   dbusif_pending_gate_t *gate = aptr;
-  log_info("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
-           dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
+  log_debug("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
+            dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
   gate->callback(pend, gate->user_data);
 }
 static
@@ -478,10 +478,10 @@ dbusif_pending_gate_free(void *aptr)
   dbusif_pending_free += 1;
 
   dbusif_pending_gate_t *gate = aptr;
-  log_info("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
-           dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
+  log_debug("PENDING %s: ID=%u (%u - %u - %u)\n", __FUNCTION__, gate->unique,
+            dbusif_pending_init, dbusif_pending_call, dbusif_pending_free);
 
-  log_info("USER FREE: %p, DATA: %p\n", gate->user_free, gate->user_data);
+  log_debug("USER FREE: %p, DATA: %p\n", gate->user_free, gate->user_data);
 
   if( gate->user_free != 0 )
   {
