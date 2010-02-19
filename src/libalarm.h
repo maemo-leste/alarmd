@@ -1327,16 +1327,39 @@ typedef struct alarm_event_t
   /** Seconds since epoch, or <br>
    *  -1 = use broken down time spec below.
    *
+   * This specifies the alarm time in absolute terms
+   * (seconds since epoch) and thus is not affected
+   * by timezone changes.
+   *
+   * Note: This means that the interpretation of the alarm time
+   * as time-of-day in localtime can change if the timezone is
+   * changed. So use this only if you absolutely must have more
+   * than one minute accuracy for alarms, or if you do not care
+   * about the time-of-day when the alarm should be triggered. 
+   * Otherwise use #alarm_tm instead.
+   *
    * See also:
    * - #alarm_event_get_time()
+   * - #alarm_tm
+   * - #alarm_tx
    */
   time_t         alarm_time;
 
   /** Alarm time broken down to year month day and hour min min sec.
    *
+   *
+   * If #alarm_tz is left unset, the actual triggering time will
+   * be re-evaluated when currently active timezone changes.
+   *
+   * Note: Alarm daemon will round up the actual alarm time to the
+   * next full minute. If you absolutely need more than one minute
+   * accuracy for alarms, use #alarm_time instead.
+   *
    * See also:
    * - #alarm_event_get_time()
    * - #alarm_event_set_time()
+   * - #alarm_tz
+   * - #alarm_time
    */
   struct tm      alarm_tm;
 
@@ -1344,7 +1367,7 @@ typedef struct alarm_event_t
    *
    * Note that alarm timezone is used only
    * when evaluating trigger time from
-   * broken down time or recurrence time
+   * broken down time (#alarm_tm) or recurrence time
    * from recurrence masks.
    *
    * If timezone is left unset the trigger
@@ -1353,6 +1376,7 @@ typedef struct alarm_event_t
    * See also:
    * - #alarm_event_get_alarm_tz()
    * - #alarm_event_set_alarm_tz()
+   * - #alarm_tm
    */
   char          *alarm_tz;
 

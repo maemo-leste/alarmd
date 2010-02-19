@@ -2270,39 +2270,37 @@ server_rethink_limbo(void)
 {
   int       cnt = 0;
   cookie_t *vec = 0;
+  unsigned current_server_state = 0;
+  unsigned is_user_mode = 0;
 
-  if( server_state_get() & SF_ACT_DEAD )
+  current_server_state = server_state_get();
+
+  if( current_server_state & SF_DESKTOP_UP )
   {
+    /* - - - - - - - - - - - - - - - - - - - *
+     * We are in user mode and desktop has
+     * been started up, all events will pass
+     * through from the limbo
+     * OR we are in acting dead mode and init was done
+     * - - - - - - - - - - - - - - - - - - - */
+
+    is_user_mode = !(current_server_state & SF_ACT_DEAD);
+    vec = queue_query_by_state(&cnt, ALARM_STATE_LIMBO);
+
+    for( int i = 0; i < cnt; ++i )
+    {
     /* - - - - - - - - - - - - - - - - - - - *
      * if we are in acting dead, only alarms
      * with ALARM_EVENT_ACTDEAD will pass
      * through the limbo
+     * Otherwise all alarms will be triggered
      * - - - - - - - - - - - - - - - - - - - */
 
-    vec = queue_query_by_state(&cnt, ALARM_STATE_LIMBO);
-    for( int i = 0; i < cnt; ++i )
-    {
       alarm_event_t *eve = queue_get_event(vec[i]);
-
-      if( eve->flags & ALARM_EVENT_ACTDEAD )
+      if(is_user_mode  || eve->flags & ALARM_EVENT_ACTDEAD )
       {
         queue_event_set_state(eve, ALARM_STATE_TRIGGERED);
       }
-    }
-  }
-  else if( server_state_get() & SF_DESKTOP_UP )
-  {
-    /* - - - - - - - - - - - - - - - - - - - *
-     * if we are in user mode and desktop has
-     * been started up, all events will pass
-     * through from the limbo
-     * - - - - - - - - - - - - - - - - - - - */
-
-    vec = queue_query_by_state(&cnt, ALARM_STATE_LIMBO);
-    for( int i = 0; i < cnt; ++i )
-    {
-      alarm_event_t *eve = queue_get_event(vec[i]);
-      queue_event_set_state(eve, ALARM_STATE_TRIGGERED);
     }
   }
 
@@ -2455,6 +2453,14 @@ server_rethink_sysui_rsp(void)
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
     log_info("[%ld] RSP: button=%d\n", (long)vec[i], eve->response);
+
+    if ( -1 == eve->response && 
+         (eve->flags & ALARM_EVENT_DISABLE_DELAYED) &&
+         !alarm_event_is_recurring(eve) )
+    {
+      eve->flags |= ALARM_EVENT_DISABLED;
+      continue;
+    }
 
     server_event_do_response_actions(eve);
 
@@ -2896,6 +2902,10 @@ server_rethink_start_cb(gpointer data)
 // QUARANTINE   server_queuestate_curr.qs_alarms += queue_count_by_state(ALARM_STATE_TRIGGERED);
 // QUARANTINE   server_queuestate_curr.qs_alarms += queue_count_by_state(ALARM_STATE_SYSUI_RSP);
 
+  if( server_state_get() & SF_ACT_DEAD )
+  {
+    server_queuestate_curr.qs_alarms += queue_count_by_state_and_flag(ALARM_STATE_LIMBO, ALARM_EVENT_ACTDEAD);
+  }
   server_queuestate_curr.qs_alarms  += queue_count_by_state(ALARM_STATE_WAITSYSUI);
   server_queuestate_curr.qs_alarms  += queue_count_by_state(ALARM_STATE_SYSUI_REQ);
   server_queuestate_curr.qs_alarms  += queue_count_by_state(ALARM_STATE_SYSUI_ACK);

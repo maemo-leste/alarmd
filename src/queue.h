@@ -48,6 +48,7 @@ alarm_event_t *queue_get_event        (cookie_t cookie);
 int            queue_del_event        (cookie_t cookie);
 cookie_t      *queue_query_events     (int *pcnt, time_t lo, time_t hi, unsigned mask, unsigned flag, const char *app);
 cookie_t      *queue_query_by_state   (int *pcnt, unsigned state);
+int            queue_count_by_state_and_flag   (unsigned state, unsigned flag);
 int            queue_count_by_state   (unsigned state);
 void           queue_cleanup_deleted  (void);
 void           queue_save             (void);

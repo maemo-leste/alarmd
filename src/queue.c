@@ -674,6 +674,33 @@ queue_count_by_state(unsigned state)
 }
 
 /* ------------------------------------------------------------------------- *
+ * queue_count_by_state_and_flag
+ * ------------------------------------------------------------------------- */
+
+int
+queue_count_by_state_and_flag   (unsigned state, unsigned flag)
+{
+  int cnt = 0;
+
+  for( size_t i = queue_count; i--; )
+  {
+    alarm_event_t *eve = queue_by_trigger[i];
+
+    if( eve->flags & ALARM_EVENT_DISABLED )
+    {
+      continue;
+    }
+
+    if( queue_event_get_state(eve) == state && eve->flags & flag )
+    {
+      cnt += 1;
+    }
+  }
+
+  return cnt;
+}
+
+/* ------------------------------------------------------------------------- *
  * queue_cleanup_deleted
  * ------------------------------------------------------------------------- */
 
