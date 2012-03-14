@@ -1257,7 +1257,7 @@ server_action_do_exec(alarm_event_t *event, alarm_action_t *action)
   {
     if( (hit = strstr(cmd, tag)) != 0 )
     {
-      asprintf(&tmp, "%*s%d%s",
+      asprintf(&tmp, "%.*s%d%s",
                (int)(hit-cmd), cmd,
                (int)event->ALARMD_PRIVATE(cookie),
                hit + sizeof tag - 1);
