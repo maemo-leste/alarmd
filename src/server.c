@@ -1281,7 +1281,7 @@ server_action_do_exec(alarm_event_t *event, alarm_action_t *action)
   cleanup:
 
   free(tmp);
-  return 0;
+  return err;
 }
 
 /* ------------------------------------------------------------------------- *
