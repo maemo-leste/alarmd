@@ -12,7 +12,8 @@ Build-Depends: debhelper (>= 4.1.0),
  libdsme0.2.0-dev,
  mce-dev,
  statusbar-alarm-dev,
- doxygen
+ doxygen,
+ libgtk2.0-dev
 Standards-Version: 3.7.2
 
 Package: alarmd
