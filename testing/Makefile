@@ -25,7 +25,6 @@ LDLIBS   += ../libalarm.a -ltime
 # ----------------------------------------------------------------------------
 
 PKG_NAMES := \
- gtk+-2.0 \
  dbus-glib-1 \
  dsme_dbus_if \
  statusbar-alarm
