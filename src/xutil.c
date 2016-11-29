@@ -84,7 +84,7 @@ xloadfile(const char *path, char **pdata, size_t *psize)
 
   if( (data = calloc(size+1, 1)) == 0 )
   {
-    log_warning_F("%s: calloc %d: %s\n", path, size, strerror(errno));
+    log_warning_F("%s: calloc %lu: %s\n", path, (unsigned long)size, strerror(errno));
     goto cleanup;
   }
 

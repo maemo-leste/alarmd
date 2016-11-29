@@ -293,7 +293,9 @@ main(int argc, char **argv)
   }
 
   // libconic uses gobjects
+#if !GLIB_CHECK_VERSION(2,35,0)
   g_type_init();
+#endif
 
   while( (opt = getopt_long(argc, argv, opt_s, opt_l, 0)) != -1 )
   {
