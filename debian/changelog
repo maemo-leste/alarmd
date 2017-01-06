@@ -10,7 +10,7 @@ alarmd (1.1.16+0m5+0cssu0) unstable; urgency=low
   * Fixes: Alarmd does not correctly replace [COOKIE] in exec string
     see https://bugs.maemo.org/10025 and https://bugs.maemo.org/12560
 
- -- Ivaylo Dimitrov <freemangordon@abv.bg>  Wen, 14 Mar 2012 19:55:11 +0200
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Wed, 14 Mar 2012 19:55:11 +0200
 
 alarmd (1.1.16+0m5) unstable; urgency=low
 
