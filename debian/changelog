@@ -1,3 +1,10 @@
+alarmd (1.1.17) unstable; urgency=medium
+
+  * Port to debhelper 10
+  * Update Doxyfile
+
+ -- Ivan J. <parazyd@dyne.org>  Sat, 30 Mar 2019 11:47:29 +0100
+
 alarmd (1.1.16) unstable; urgency=medium
 
   * enable git builds

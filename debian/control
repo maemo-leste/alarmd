@@ -2,7 +2,7 @@ Source: alarmd
 Section: misc
 Priority: optional
 Maintainer: Simo Piiroinen <simo.piiroinen@nokia.com>
-Build-Depends: debhelper (>= 4.1.0),
+Build-Depends: debhelper (>= 10),
  libtime-dev,
  libdbus-1-dev,
  libdbus-glib-1-dev,
@@ -25,29 +25,11 @@ Description: alarm daemon
  actions defined in events either automatically or
  after user input via system ui dialog service.
 
-Package: alarmd-dbg
-Section: devel
-Priority: extra
-Architecture: any
-Depends: alarmd (= ${binary:Version})
-Description: debug symbols for alarmd
- This package contains debug information for alarmd,
- useful for debugging tools like gdb.
-
 Package: alarmclient
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: test tool for alarmd access
  Command line utility for testing and debugging alarmd features.
-
-Package: alarmclient-dbg
-Section: devel
-Priority: extra
-Architecture: any
-Depends: alarmclient (= ${binary:Version})
-Description: debug symbols for alarmclient
- This package contains debug information for alarmclient,
- useful for debugging tools like gdb.
 
 Package: libalarm2
 Section: libs
@@ -56,15 +38,6 @@ Depends: ${shlibs:Depends}
 Description: client library for communicating with alarmd
  Client side API for adding, removing and querying events
  in alarmd queue.
-
-Package: libalarm2-dbg
-Section: libdevel
-Priority: extra
-Architecture: any
-Depends: libalarm2 (= ${binary:Version})
-Description: debug symbols for libalarm2
- This package contains debug information for libalarm2,
- useful for debugging tools like gdb.
 
 Package: libalarm-dev
 Section: libdevel
