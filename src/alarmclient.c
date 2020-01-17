@@ -2871,7 +2871,7 @@ alarmclient_handle_list_events(int verbose)
         char date[128];
         char secs[128];
         char ident[256];
-        char stamp[256];
+        char stamp[512];
 
         time_t diff = now - event[i]->ALARMD_PRIVATE(trigger);
 
