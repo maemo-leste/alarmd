@@ -2633,7 +2633,7 @@ alarmclient_handle_del_event(char *args)
 {
   cookie_t cookie = alarmclient_string_to_cookie(args);
   int      error  = alarmd_event_del(cookie);
-  alarmclient_emitf("DEL %ld -> %s\n", cookie, error ? "ERR" : "OK");
+  alarmclient_emitf("DEL %d -> %s\n", cookie, error ? "ERR" : "OK");
 }
 
 /* ------------------------------------------------------------------------- *
@@ -2817,7 +2817,7 @@ alarmclient_handle_get_event(char *args)
   cookie_t cookie = alarmclient_string_to_cookie(args);
   alarm_event_t *event = alarmd_event_get(cookie);
 
-  alarmclient_emitf("GET %ld -> %s\n", cookie, event ? "OK" : "ERR");
+  alarmclient_emitf("GET %d -> %s\n", cookie, event ? "OK" : "ERR");
 
   if( event != 0 )
   {
@@ -2851,7 +2851,7 @@ alarmclient_handle_list_events(int verbose)
   {
     for( size_t i = 0; cookie && cookie[i]; ++i )
     {
-      alarmclient_emitf("[%03ld]\n", cookie[i]);
+      alarmclient_emitf("[%03d]\n", cookie[i]);
     }
   }
   else
@@ -2885,14 +2885,14 @@ alarmclient_handle_list_events(int verbose)
 
         snprintf(stamp, sizeof stamp, "%s (T%s)", date, secs);
 
-        alarmclient_emitf("[%03ld] %-36s %s\n", cookie[i], stamp, ident);
+        alarmclient_emitf("[%03d] %-36s %s\n", cookie[i], stamp, ident);
       }
     }
     else
     {
       for( size_t i = 0; i < n; ++i )
       {
-        alarmclient_emitf("[%03ld]  ", cookie[i]);
+        alarmclient_emitf("[%03d]  ", cookie[i]);
         alarmclient_event_show(event[i]);
       }
     }
@@ -2923,7 +2923,7 @@ alarmclient_handle_clear_events(void)
   else for( size_t i = 0; cookie[i]; ++i )
   {
     int rc = alarmd_event_del(cookie[i]);
-    alarmclient_emitf("DEL %ld -> %s\n", cookie[i], rc ? "ERR" : "OK");
+    alarmclient_emitf("DEL %d -> %s\n", cookie[i], rc ? "ERR" : "OK");
   }
   free(cookie);
 }
@@ -3021,7 +3021,7 @@ alarmclient_handle_new_event(char *args)
   }
   if( cookie > 0 )
   {
-    alarmclient_emitf("ADD -> %ld\n", cookie);
+    alarmclient_emitf("ADD -> %d\n", cookie);
   }
   else
   {
@@ -3204,7 +3204,7 @@ alarmclient_handle_add_trackable_event(char *args, int show)
   {
     if( (cookie = alarmd_event_update(eve)) > 0 )
     {
-      alarmclient_emitf("UPDATE -> %ld\n", cookie);
+      alarmclient_emitf("UPDATE -> %d\n", cookie);
     }
     else
     {
@@ -3215,7 +3215,7 @@ alarmclient_handle_add_trackable_event(char *args, int show)
   {
     if( (cookie = alarmd_event_add(eve)) > 0 )
     {
-      alarmclient_emitf("ADD -> %ld\n", cookie);
+      alarmclient_emitf("ADD -> %d\n", cookie);
     }
     else
     {

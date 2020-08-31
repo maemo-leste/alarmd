@@ -163,7 +163,7 @@ extern "C" {
 
 /** \brief Unique identifier type for the alarm events.
  **/
-typedef long cookie_t;
+typedef int32_t cookie_t;
 
 /* ------------------------------------------------------------------------- *
  * alarm_attr_t

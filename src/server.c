@@ -1924,7 +1924,7 @@ server_handle_systemui_ack(cookie_t *vec, int cnt)
   for( int i = 0; i < cnt; ++i )
   {
     alarm_event_t *eve = queue_get_event(vec[i]);
-    log_debug("[%ld] ACK: event=%p\n", vec[i], eve);
+    log_debug("[%d] ACK: event=%p\n", vec[i], eve);
     if( eve != 0 )
     {
       queue_event_set_state(eve, ALARM_STATE_SYSUI_ACK);
@@ -1958,7 +1958,7 @@ server_handle_systemui_rsp(cookie_t cookie, int button)
 
   alarm_event_t *eve = queue_get_event(cookie);
 
-  log_info("rsp %ld -> %p (button=%d)\n", cookie, eve, button);
+  log_info("rsp %d -> %p (button=%d)\n", cookie, eve, button);
 
   if( eve != 0 )
   {
@@ -2776,11 +2776,11 @@ server_rethink_timechange(void)
 
         ticker_break_tm(old, &tm, tz ?: server_tz_prev);
         server_repr_tm(&tm, tz ?: server_tz_prev, trg, sizeof trg);
-        log_debug("[%ld] OLD: %s, at %+d\n", vec[i], trg, (int)(old - now));
+        log_debug("[%d] OLD: %s, at %+d\n", vec[i], trg, (int)(old - now));
 
         ticker_break_tm(use, &tm, tz ?: server_tz_curr);
         server_repr_tm(&tm, tz ?: server_tz_curr, trg, sizeof trg);
-        log_debug("[%ld] NEW: %s, at %+d\n", vec[i], trg, (int)(use - now));
+        log_debug("[%d] NEW: %s, at %+d\n", vec[i], trg, (int)(use - now));
 
         queue_event_set_trigger(eve, use);
         queue_event_set_state(eve, ALARM_STATE_NEW);

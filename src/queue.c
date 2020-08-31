@@ -462,7 +462,7 @@ queue_event_set_state(alarm_event_t *self, unsigned state)
 
   if( previous != current )
   {
-    log_info("[%ld] TRANS: %s -> %s\n",
+    log_info("[%d] TRANS: %s -> %s\n",
              self->ALARMD_PRIVATE(cookie),
              queue_event_state_names[previous],
              queue_event_state_names[current]);
@@ -474,14 +474,14 @@ queue_event_set_state(alarm_event_t *self, unsigned state)
   }
   else if( current != state )
   {
-    log_warning("[%ld] TRANS: %s -> %s - BLOCKED\n",
+    log_warning("[%d] TRANS: %s -> %s - BLOCKED\n",
               self->ALARMD_PRIVATE(cookie),
               queue_event_state_names[previous],
               queue_event_state_names[state]);
   }
   else if( current == ALARM_STATE_NEW )
   {
-    log_info("[%ld] TRANS: %s -> %s\n",
+    log_info("[%d] TRANS: %s -> %s\n",
              self->ALARMD_PRIVATE(cookie),
              queue_event_state_names[previous],
              queue_event_state_names[current]);

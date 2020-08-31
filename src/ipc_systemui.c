@@ -35,6 +35,8 @@
 # include <stdlib.h>
 #endif
 
+#include <glib.h>
+
 static void (*systemui_ack_callback)(dbus_int32_t *vec, int cnt) = 0;
 
 static const char *(*systemui_service_callback)(void) = 0;
@@ -180,7 +182,7 @@ ipc_systemui_query_dialog(DBusConnection *conn)
 static void
 systemui_ack_open(DBusPendingCall *pending, void *user_data)
 {
-  cookie_t cookie = (cookie_t)user_data;
+  cookie_t cookie = (cookie_t)GPOINTER_TO_UINT(user_data);
   int      result = 0;
 
   DBusMessage *rsp = dbus_pending_call_steal_reply(pending);
@@ -228,7 +230,7 @@ systemui_ack_open(DBusPendingCall *pending, void *user_data)
 static void
 systemui_ack_close(DBusPendingCall *pending, void *user_data)
 {
-  cookie_t cookie = (cookie_t)user_data;
+  cookie_t cookie = (cookie_t)GPOINTER_TO_UINT(user_data);
   int      result = 0;
 
   DBusMessage *rsp = dbus_pending_call_steal_reply(pending);
@@ -279,7 +281,7 @@ systemui_open_dialog(DBusConnection *conn, cookie_t cookie)
   cookie &= ~MORE_BIT;
 
   return dbusif_method_call_async(conn,
-                                  systemui_ack_open, (void*)cookie,0,
+                                  systemui_ack_open, GUINT_TO_POINTER(cookie),0,
                                   systemui_service_name(),
                                   SYSTEMUI_REQUEST_PATH,
                                   SYSTEMUI_REQUEST_IF,
@@ -301,7 +303,7 @@ systemui_close_dialog(DBusConnection *conn, cookie_t cookie)
   cookie &= ~MORE_BIT;
 
   return dbusif_method_call_async(conn,
-                                  systemui_ack_close, (void*)cookie, 0,
+                                  systemui_ack_close, GUINT_TO_POINTER(cookie), 0,
                                   systemui_service_name(),
                                   SYSTEMUI_REQUEST_PATH,
                                   SYSTEMUI_REQUEST_IF,
