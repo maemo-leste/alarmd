@@ -80,7 +80,7 @@ PKG_CONFIG   ?= true
 endif
 
 PKG_CONFIG   ?= pkg-config
-PKG_CFLAGS   := $(shell $(PKG_CONFIG) --cflags $(PKG_NAMES))
+PKG_CFLAGS   := $(shell $(PKG_CONFIG) --cflags $(PKG_NAMES)) -Wno-unused-result
 PKG_LDLIBS   := $(shell $(PKG_CONFIG) --libs   $(PKG_NAMES))
 PKG_CPPFLAGS := $(filter -D%,$(PKG_CFLAGS)) $(filter -I%,$(PKG_CFLAGS))
 PKG_CFLAGS   := $(filter-out -I%, $(filter-out -D%, $(PKG_CFLAGS)))
