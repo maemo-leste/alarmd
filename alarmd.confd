@@ -1,0 +1,2 @@
+DAEMON="@SBINDIR@/alarmd.wrapper"
+DAEMON_OPTS=""

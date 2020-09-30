@@ -6,6 +6,8 @@
 override_dh_install:
 	$(MAKE) debian-files
 	$(MAKE) install-alarmd       ROOT=debian/alarmd
+	mkdir -p $(CURDIR)/debian/alarmd/etc/conf.d
+	cp -f debian/alarmd.confd debian/alarmd/etc/conf.d
 	$(MAKE) install-libalarm     ROOT=debian/libalarm2
 	$(MAKE) install-libalarm-dev ROOT=debian/libalarm-dev
 	$(MAKE) install-libalarm-doc ROOT=debian/libalarm-doc
