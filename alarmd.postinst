@@ -31,7 +31,9 @@ if [ ! -d "@CACHEDIR@" ]; then
 fi
 
 if [ -d "@CACHEDIR@" ]; then
-  chown user:users "@CACHEDIR@"
+  if id user >/dev/null; then
+    chown user:users "@CACHEDIR@"
+  fi
 fi
 
 #DEBHELPER#
