@@ -1,3 +1,9 @@
+alarmd (1.1.21) unstable; urgency=medium
+
+  * Fix postinst to chown only if user exists.
+
+ -- Ivan J. <parazyd@dyne.org>  Sun, 04 Oct 2020 10:36:56 +0200
+
 alarmd (1.1.20) unstable; urgency=medium
 
   * Rewrite alarmd initscript for OpenRC.
