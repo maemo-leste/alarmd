@@ -3,7 +3,7 @@
 description="Alarm daemon"
 
 depend() {
-	need dbus clockd
+	need dbus dbus-user clockd
 }
 
 start() {
