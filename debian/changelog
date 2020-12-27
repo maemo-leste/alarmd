@@ -1,3 +1,9 @@
+alarmd (1.1.22) unstable; urgency=medium
+
+  * Depend on dbus-user in init script
+
+ -- Merlijn Wajer <merlijn@wizzup.org>  Sun, 27 Dec 2020 18:00:03 +0100
+
 alarmd (1.1.21) unstable; urgency=medium
 
   * Fix postinst to chown only if user exists.
