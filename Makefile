@@ -99,7 +99,8 @@ CFLAGS   += -Wmissing-prototypes
 CFLAGS   += -std=c99
 CFLAGS   += -Os
 CFLAGS   += -g
-CFLAGS   += -Werror
+CFLAGS   += -Wno-error
+CFLAGS   += -fcommon
 
 LDFLAGS  += -g
 
