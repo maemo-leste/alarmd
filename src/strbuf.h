@@ -53,7 +53,7 @@ struct strbuf_t
  * strbuftypetags  --  encoding control characters used with strbuf
  * ------------------------------------------------------------------------- */
 
-enum strbuftypetags
+typedef enum strbuftypetags
 {
   tag_error     = -1,
   tag_done      =  0,

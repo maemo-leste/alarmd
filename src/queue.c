@@ -416,9 +416,8 @@ queue_event_set_state(alarm_event_t *self, unsigned state)
   switch( state )
   {
   default:
-    log_debug("UNKNOWN TRANSITION: %s -> %s\n",
-              queue_event_state_names[previous],
-              queue_event_state_names[state]);
+    log_debug("UNKNOWN TRANSITION: %s -> %u\n",
+              queue_event_state_names[previous], state);
     break;
 
   case ALARM_STATE_NEW:
