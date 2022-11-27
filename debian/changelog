@@ -1,3 +1,9 @@
+alarmd (1.1.23) unstable; urgency=medium
+
+  * Fix build failure on chimaera
+
+ -- Ivaylo Dimitrov <ivo.g.dimitrov.75@gmail.com>  Sun, 27 Nov 2022 09:50:31 +0200
+
 alarmd (1.1.22) unstable; urgency=medium
 
   * Depend on dbus-user in init script
